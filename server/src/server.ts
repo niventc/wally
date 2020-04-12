@@ -1,6 +1,6 @@
 import * as express from 'express';
 import * as expressWs from 'express-ws';
-import * as http from 'http';
+import { NoteService } from './note.service';
 
 class Server {
     public app: express.Application;
@@ -14,7 +14,20 @@ class Server {
             res.send('Hello World!');
         });
 
-        this.app = app;
+        this.app = this.initializeWebSocket(app);
+    }
+
+    private initializeWebSocket(app: express.Application): express.Application {
+        const wsInstance = expressWs(app);
+        const noteService = new NoteService(wsInstance);
+
+        wsInstance.app.ws('/ws', noteService.onWebSocket);
+
+        wsInstance.getWss().on("connection", (ws, req) => {
+            console.log("connected");
+        });
+
+        return wsInstance.app;
     }
 
     public listen(): void {
@@ -24,5 +37,5 @@ class Server {
     }
 }
 
-const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000; 
+const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000; 
 new Server(port).listen();
