@@ -5,6 +5,7 @@ export class Note {
         public zIndex: number,
         public x: number,
         public y: number,
-        public colour: string
+        public colour: string,
+        public text: string
     ) {}
 }
