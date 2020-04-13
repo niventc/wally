@@ -50,7 +50,7 @@ class App extends Component<Props, State> {
   public ws?: WebSocketSubject<Message> = undefined;
 
   public componentDidMount(): void {
-    this.ws = webSocket("ws://localhost:5000/ws");
+    this.ws = webSocket(process.env.REACT_APP_WS_URL);
 
     this.ws
       .subscribe(x => {
