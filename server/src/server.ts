@@ -10,9 +10,7 @@ class Server {
     ) {
         const app = express();
 
-        app.get('/', function (req, res) {
-            res.send('Hello World!');
-        });
+        app.use(express.static("client"));
 
         this.app = this.initializeWebSocket(app);
     }
