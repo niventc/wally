@@ -1,6 +1,7 @@
 import * as express from 'express';
 import * as expressWs from 'express-ws';
 import { NoteService } from './note.service';
+import * as path from 'path';
 
 class Server {
     public app: express.Application;
@@ -13,6 +14,9 @@ class Server {
         app.use(express.static("client"));
 
         this.app = this.initializeWebSocket(app);
+
+        // fall through
+        this.app.get('*', (req, res) => res.sendFile('./client/index.html', { root: path.resolve() }));
     }
 
     private initializeWebSocket(app: express.Application): express.Application {
