@@ -70,3 +70,8 @@ new Server(port).listen();
 
 setup react
 npx create-react-app src/client --template typescript
+
+
+
+docker build -t wally .
+docker run -p 8080:8080 -e PORT=8080 -e NEDB_ROOT_DIR=/data -v c:/projects/wally/server/store:/data  wally

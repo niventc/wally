@@ -13,7 +13,8 @@ export class WallStore {
     private dataStore: DataStore<Wall>;
 
     constructor() {
-        this.dataStore = new DataStore({ filename: "./store/walls.db", autoload: true });
+        this.dataStore = new DataStore({ filename: (process.env.NEDB_ROOT_DIR ? process.env.NEDB_ROOT_DIR : "./store") + "/walls.db", autoload: true });
+        this.dataStore.persistence.setAutocompactionInterval(30 * 60 * 1000); // try compacting every 30 minutes
     }
 
     public async doesWallExist(name: string): Promise<boolean> {

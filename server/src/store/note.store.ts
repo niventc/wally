@@ -6,7 +6,8 @@ export class NoteStore {
     private dataStore: DataStore<Note>;
 
     constructor() {
-        this.dataStore = new DataStore({ filename: "./store/notes.db", autoload: true });
+        this.dataStore = new DataStore({ filename: (process.env.NEDB_ROOT_DIR ? process.env.NEDB_ROOT_DIR : "./store") + "/notes.db", autoload: true });
+        this.dataStore.persistence.setAutocompactionInterval(5 * 60 * 1000); // try compacting every 5 minutes
     }
 
     public async addNote(note: Note): Promise<void> {
