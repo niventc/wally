@@ -1,6 +1,6 @@
 import { connect } from "react-redux";
 import React, { Component, Dispatch } from "react";
-import { Navbar, Form, FormControl } from "react-bootstrap";
+import { Navbar, Form } from "react-bootstrap";
 import { SketchPicker } from "react-color";
 
 import { User, UpdateUser, Message } from "wally-contract";

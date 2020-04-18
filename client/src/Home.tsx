@@ -8,7 +8,7 @@ import { connect, useSelector, useDispatch } from "react-redux";
 import User from "./User";
 import { SendWrapper } from "./webSocket.middleware";
 import { WallReducerState } from "./wall.reducer";
-import { HomeReducerState, ToggleSideBar } from "./home.reducer";
+import { HomeReducerState } from "./home.reducer";
 
 interface HomeState {
     wallName: string;
