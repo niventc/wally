@@ -16,7 +16,15 @@ export class Connect implements Message {
 export const webSocketMiddleware: () => Middleware = () => {
     console.log("middlewarey!");
 
-    const socket = webSocket<Message>(process.env.REACT_APP_WS_URL);
+    const getWebSocketAddress = () => {
+        if (process.env.REACT_APP_WS_URL) {
+            // local development, environment variables are set at build time so can't overwrite in production
+            return process.env.REACT_APP_WS_URL;
+        }
+        return (window.location.protocol.toLowerCase() === "https" ? "wss" : "ws") + "://" + window.location.host + "/ws";
+    };
+
+    const socket = webSocket<Message>(getWebSocketAddress());
 
     return store => next => (action: Message) => {
         console.log("middleware", action);
