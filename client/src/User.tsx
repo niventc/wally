@@ -6,6 +6,10 @@ import { SketchPicker } from "react-color";
 import { User, UpdateUser, Message } from "wally-contract";
 import { SendWrapper } from "./webSocket.middleware";
 
+interface UserProps {
+    isExpanded: boolean;
+}
+
 interface StateProps {
     user: User;
 }
@@ -24,7 +28,7 @@ export default connect<StateProps, DispatchProps>(
         updateUser: (userId: string, user: Partial<User>) => dispatch(new SendWrapper(new UpdateUser(userId, user)))
     })
 )(
-class User extends Component<StateProps & DispatchProps> {
+class User extends Component<UserProps & StateProps & DispatchProps> {
     
     public state: UserState = {
         showColourPicker: false
@@ -32,10 +36,10 @@ class User extends Component<StateProps & DispatchProps> {
 
     public render(): JSX.Element {
         return (
-            <div>                
-                <Form inline>
-                    <div>
-                        <div style={{background: this.props.user.colour, width: '25px', height: '25px', borderRadius: '25px', cursor: 'pointer', marginRight: '12px'}} 
+            <div className="text-center">                
+                <Form inline style={{marginBottom: '12px'}}>
+                    <div style={{margin: 'auto'}}>
+                        <div style={{background: this.props.user.colour, width: '30px', height: '30px', borderRadius: '30px', cursor: 'pointer'}} 
                             onClick={() => this.setState({...this.state, showColourPicker: true})}>&nbsp;</div>
                         {
                             this.state.showColourPicker ? 
@@ -46,21 +50,27 @@ class User extends Component<StateProps & DispatchProps> {
                             : null
                         }
                     </div>
-                    <Navbar.Text>
-                        <Form.Check style={{marginRight: '12px'}} 
-                                    id="nightMode" 
-                                    type="switch" 
-                                    label="Night mode" 
-                                    checked={this.props.user.useNightMode} 
-                                    onChange={() => this.props.updateUser(this.props.user._id, { useNightMode: !this.props.user.useNightMode })}>
-                        </Form.Check>
-                    </Navbar.Text>
-                    <FormControl type="text" 
-                                placeholder="Name" 
-                                className="mr-sm-2" 
-                                style={{marginRight: '12px'}}
-                                value={this.props.user.name} 
-                                onChange={(e: React.FormEvent<HTMLInputElement>) => this.props.updateUser(this.props.user._id, { name: e.currentTarget.value })}/>
+                    {
+                        this.props.isExpanded ?
+                        <div>
+                            <Navbar.Text>
+                                <Form.Check style={{marginRight: '12px'}} 
+                                            id="nightMode" 
+                                            type="switch" 
+                                            label="Night mode" 
+                                            checked={this.props.user.useNightMode} 
+                                            onChange={() => this.props.updateUser(this.props.user._id, { useNightMode: !this.props.user.useNightMode })}>
+                                </Form.Check>
+                            </Navbar.Text>
+                            <FormControl type="text" 
+                                        placeholder="Name" 
+                                        className="mr-sm-2" 
+                                        style={{marginRight: '12px'}}
+                                        value={this.props.user.name} 
+                                        onChange={(e: React.FormEvent<HTMLInputElement>) => this.props.updateUser(this.props.user._id, { name: e.currentTarget.value })}/>
+                        </div>
+                        : undefined 
+                    }    
                 </Form>
             </div>
         );

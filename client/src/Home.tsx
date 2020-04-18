@@ -8,12 +8,14 @@ import { connect, useSelector, useDispatch } from "react-redux";
 import User from "./User";
 import { SendWrapper } from "./webSocket.middleware";
 import { WallReducerState } from "./wall.reducer";
+import { HomeReducerState, ToggleSideBar } from "./home.reducer";
 
 interface HomeState {
     wallName: string;
 }
 
 interface WallProps {
+    home: HomeReducerState;
     wall: WallReducerState;
     user: UserModel;
 }
@@ -29,21 +31,23 @@ const WallLoader: React.FunctionComponent = () => {
 
     return (
         <div style={{width: '100%', height: '100%'}}>
-            {wall ? <Wall wall={wall}></Wall> : dispatch(new SendWrapper(new JoinWall(name)))}
+            {wall ? <Wall wall={wall}></Wall> : dispatch(new SendWrapper(new JoinWall(unescape(name))))}
         </div>
     )
 }
 
 interface DispatchFromProps {    
     createWall: (id: string) => void,
-    joinWall: (id: string) => void
+    joinWall: (id: string) => void,
+    toggleSideBar: () => void
 }
 
 export default connect<WallProps, DispatchFromProps>(
-    (state: any) => ({ wall: state.wall, user: state.user }),
+    (state: any) => ({ home: state.home, wall: state.wall, user: state.user }),
     (dispatch: Dispatch<Message>) => ({        
         createWall: (id: string) => dispatch(new SendWrapper(new CreateWall(id))),
-        joinWall: (id: string) => dispatch(new SendWrapper(new JoinWall(id)))
+        joinWall: (id: string) => dispatch(new SendWrapper(new JoinWall(id))),
+        toggleSideBar: () => dispatch({type: "ToggleSideBar"})
     })
 )(
 class Home extends Component<DispatchFromProps & WallProps> {
@@ -66,24 +70,42 @@ class Home extends Component<DispatchFromProps & WallProps> {
 
     public render(): JSX.Element {
         return (
-            <div className="App" style={{background: this.props.user.useNightMode ? '#282c34' : 'inherit'}}>
+            <div className="App" style={{ display: 'flex', flexDirection: 'row', background: this.props.user.useNightMode ? '#282c34' : 'inherit'}}>
             
-                <Navbar fixed="top" variant={this.props.user.useNightMode ? 'dark' : 'light'} bg={this.props.user.useNightMode ? 'dark' : 'light'} style={{borderBottom: '1px solid rgba(0,0,0,.125)'}}>
-                    <Navbar.Brand>            
+                <Navbar variant={this.props.user.useNightMode ? 'dark' : 'light'} 
+                        bg={this.props.user.useNightMode ? 'dark' : 'light'} 
+                        style={{flexDirection: 'column', position: 'sticky', width: this.props.home.isSideBarOpen ? '15%' : '62px', height: '100%', borderRight: '1px solid rgba(0,0,0,.125)'}}>
+                    <Navbar.Brand href="/" className="mr-auto">            
                         <img alt="Wally logo" className="d-inline-block align-top" width="30" height="30" src="logo.png" style={{marginRight: '12px'}} />
-                        [wall-y]
+                        { this.props.home.isSideBarOpen ? '[wall-y]' : undefined }
                     </Navbar.Brand>
 
-                    <Nav className="mr-auto">
-                        <Nav.Link href="/">Home</Nav.Link>
-                    </Nav>
+                    { 
+                        this.props.home.isSideBarOpen ? 
+                        <Nav className="mr-auto" style={{ display: 'flex', flexDirection: 'column' }}>
+                            {this.props.home.recentWalls.map(w => <Nav.Link key={w} href={"/" + escape(w)}>{w}</Nav.Link>)}
+                        </Nav>
+                        : undefined
+                    }
+                    
+                    <div style={{ flexGrow: 1 }}></div>
 
-                    <User />
+                    <User isExpanded={this.props.home.isSideBarOpen} />
+
+                    <Nav style={{justifyContent: 'space-between', width: this.props.home.isSideBarOpen ? '100%' : undefined}}>
+                        {this.props.home.isSideBarOpen ? <Navbar.Text>About</Navbar.Text> : undefined}
+                        <Button type="button" 
+                                title="Toggle Sidebar"
+                                variant={this.props.user.useNightMode ? 'dark' : 'light'} 
+                                onClick={() => this.props.toggleSideBar()}>
+                            {this.props.home.isSideBarOpen ? '<' : '>'}
+                        </Button>
+                    </Nav>
                 </Navbar>
 
-                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <div style={{ position: 'relative', width: this.props.home.isSideBarOpen ? '85%' : 'calc(100% - 62px)', height: '100%' }}>
 
-                    {this.props.wall.wall ? <Redirect to={"/" + this.props.wall.wall.name} /> : undefined}
+                    {this.props.wall.wall ? <Redirect to={"/" + escape(this.props.wall.wall.name)} /> : undefined}
                     {this.props.wall.error ? <Redirect to={"/"} /> : undefined}
 
                     <Switch>

@@ -9,12 +9,23 @@ import * as serviceWorker from './serviceWorker';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Home from './Home';
 import { createStore, combineReducers, applyMiddleware } from 'redux';
+import { persistReducer, persistStore } from 'redux-persist';
+import storage from 'redux-persist/lib/storage';
+import { homeReducer } from './home.reducer';
 import { userReducer } from './user.reducer';
 import { wallReducer } from './wall.reducer';
 import { webSocketMiddleware, Connect } from './webSocket.middleware';
+import { PersistGate } from 'redux-persist/integration/react';
 
-const rootReducer = combineReducers({wall: wallReducer, user: userReducer});
-const store = createStore(rootReducer, applyMiddleware(webSocketMiddleware()));
+const rootReducer = combineReducers({home: homeReducer, wall: wallReducer, user: userReducer});
+const persistConfig = {
+  key: 'home',
+  storage: storage,
+  whitelist: ["home"]
+};
+const peristedReducer = persistReducer(persistConfig, rootReducer);
+const store = createStore(peristedReducer, applyMiddleware(webSocketMiddleware()));
+const persistor = persistStore(store);
 
 // Init middleware, shouldn't be here...
 store.dispatch(new Connect());
@@ -22,11 +33,13 @@ store.dispatch(new Connect());
 ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
-      <BrowserRouter>
-        <Route path="/">
-          <Home />
-        </Route>
-      </BrowserRouter>
+      <PersistGate loading={null} persistor={persistor}>
+        <BrowserRouter>
+          <Route path="/">
+            <Home />
+          </Route>
+        </BrowserRouter>
+      </PersistGate>
     </Provider>
   </React.StrictMode>,
   document.getElementById('root')

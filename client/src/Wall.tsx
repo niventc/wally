@@ -56,7 +56,6 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         if (this.wallRef.current) {
             const mousemove = fromEvent(this.wallRef.current, "mousemove").pipe(startWith(undefined));
             const touchmove = fromEvent(this.wallRef.current, "touchmove").pipe(startWith(undefined));
-            const bounding = this.wallRef.current.getBoundingClientRect();
       
             combineLatest([mousemove, touchmove])
                 .pipe(
@@ -66,7 +65,8 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     })
                 )
                 .subscribe(e => {
-                    if (e && this.state.selectedNoteId) {
+                    if (e && this.state.selectedNoteId && this.wallRef.current) {
+                        const bounding = this.wallRef.current.getBoundingClientRect();
                         const mousemove = e as MouseEvent;
                         e.stopPropagation();      
                         this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, mousemove.clientX - bounding.left, mousemove.clientY - bounding.top);
@@ -111,7 +111,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
     public render(): JSX.Element {
         return (
             <div ref={this.wallRef} 
-                 style={{paddingTop: '56px', width: '100%', height: '100%'}}
+                 style={{position: 'relative', width: '100%', height: '100%'}}
                  onTouchEnd={() => this.unselect()}
                  onMouseUp={() => this.unselect()}>
                 {
