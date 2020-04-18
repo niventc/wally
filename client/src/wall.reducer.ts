@@ -1,7 +1,7 @@
-import { Wall, Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText } from "wally-contract";
+import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText } from "wally-contract";
 
 export interface WallReducerState {
-    wall?: Wall | undefined;
+    wall?: WallState | undefined;
     error?: string | undefined;
 }
 
@@ -23,45 +23,45 @@ export function wallReducer(
 
         case WallState.name:
             const wallState = action as WallState;
-            return { wall: wallState.wall };
+            return { wall: wallState };
     }
 
     if (state.wall) {
         switch (action.type) {
             case NewNote.name:
                 const newNote = action as NewNote;
-                if (state.wall.id !== newNote.wallId) {
+                if (state.wall.name !== newNote.wallName) {
                     return state;
                 }
                 return { ...state, wall: {...state.wall, notes: [...state.wall.notes, newNote.note] } };
 
             case MoveNote.name:
                 const moveNote = action as MoveNote;
-                if (state.wall.id !== moveNote.wallId) {
+                if (state.wall.name !== moveNote.wallName) {
                     return state;
                 }
-                const moveCard = state.wall.notes.find(c => c.id === moveNote.noteId);
+                const moveCard = state.wall.notes.find(c => c._id === moveNote.noteId);
                 const movedCard = Object.assign({}, moveCard, { x: moveNote.x, y: moveNote.y });
                 return {
                     ...state,
                     wall: {
                         ...state.wall,
-                        notes: [...state.wall.notes.filter(x => x.id !== moveNote.noteId), movedCard]
+                        notes: [...state.wall.notes.filter(x => x._id !== moveNote.noteId), movedCard]
                     }
                 };
 
             case UpdateNoteText.name:
                 const updateNoteText = action as UpdateNoteText;
-                if (state.wall.id !== updateNoteText.wallId) {
+                if (state.wall.name !== updateNoteText.wallName) {
                     return state;
                 }
-                const updateNote = state.wall.notes.find(n => n.id === updateNoteText.noteId);
+                const updateNote = state.wall.notes.find(n => n._id === updateNoteText.noteId);
                 const updatedNote = Object.assign({}, updateNote, { text: updateNoteText.text });
                 return {
                     ...state,
                     wall: {
                         ...state.wall,
-                        notes: [...state.wall.notes.filter(n => n.id !== updateNoteText.noteId), updatedNote]
+                        notes: [...state.wall.notes.filter(n => n._id !== updateNoteText.noteId), updatedNote]
                     }
                 };
         }

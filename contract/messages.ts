@@ -1,4 +1,4 @@
-import { Note, User, Wall } from "./model";
+import { Note, User } from "./model";
 
 export class Message {
     type: string;
@@ -7,21 +7,21 @@ export class Message {
 export class CreateWall implements Message {
     type = "CreateWall";
 
-    constructor(public wallId: string) {
+    constructor(public name: string) {
     }
 }
 
 export class JoinWall implements Message {
     type = "JoinWall";
 
-    constructor(public wallId: string) {
+    constructor(public name: string) {
     }
 }
 
 export class WallState implements Message {
     type = "WallState";
 
-    constructor(public wall: Wall) {
+    constructor(public name: string, public notes: Array<Note>, public users: Array<User>) {
     }
 }
 
@@ -35,7 +35,7 @@ export class WallyError implements Message {
 export class NewNote implements Message {
     type = "NewNote";
 
-    constructor (public wallId: string, public note: Note) {
+    constructor (public wallName: string, public note: Note) {
     }
 }
 
@@ -43,7 +43,7 @@ export class MoveNote implements Message {
     type = "MoveNote";
 
     constructor(
-        public wallId: string,
+        public wallName: string,
         public noteId: string,
         public x: number,
         public y: number
@@ -55,7 +55,7 @@ export class UpdateNoteText implements Message {
     type = "UpdateNoteText";
 
     constructor(
-        public wallId: string,
+        public wallName: string,
         public noteId: string,
         public text: string
     ) {
@@ -66,7 +66,7 @@ export class SelectNote implements Message {
     type = "SelectNote";
 
     constructor(
-        public wallId: string,
+        public wallName: string,
         public noteId: string,
         public byUser: User
     ) {
@@ -77,7 +77,7 @@ export class DeleteNote implements Message {
     type = "DeleteNote";
 
     constructor(
-        public wallId: string,
+        public wallName: string,
         public noteId: string
     ) {
     }

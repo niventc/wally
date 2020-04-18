@@ -2,17 +2,17 @@ import React, { Component, Dispatch, createRef } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { Card } from "react-bootstrap";
 
-import { NewNote, Wall as WallModel, Message, Note, UpdateNoteText, MoveNote, SelectNote, User } from "wally-contract";
+import { NewNote, Message, Note, UpdateNoteText, MoveNote, SelectNote, User, WallState } from "wally-contract";
 import { connect } from "react-redux";
 import { fromEvent, combineLatest } from "rxjs";
 import { startWith, throttleTime, map } from "rxjs/operators";
 import { SendWrapper } from "./webSocket.middleware";
 
 interface WallProps {
-    wall: WallModel
+    wall: WallState;
 }
 
-interface WallState {
+interface WallComponentState {
     colours: Array<string>;
     selectedNoteId: string | undefined;
 }
@@ -39,7 +39,7 @@ export default connect<StateProps, ConnectedProps>(
 )(
 class Wall extends Component<WallProps & StateProps & ConnectedProps> {
 
-    public state: WallState = {
+    public state: WallComponentState = {
         colours: [
             'yellow',
             'orange',
@@ -69,7 +69,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     if (e && this.state.selectedNoteId) {
                         const mousemove = e as MouseEvent;
                         e.stopPropagation();      
-                        this.props.moveNote(this.props.wall.id, this.state.selectedNoteId, mousemove.clientX - bounding.left, mousemove.clientY - bounding.top);
+                        this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, mousemove.clientX - bounding.left, mousemove.clientY - bounding.top);
                     }
                 });
         }
@@ -81,7 +81,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         const rect = card ? card.getBoundingClientRect() : target.getBoundingClientRect();
     
         const note = {
-          id: uuidv4(),
+          _id: uuidv4(),
           zIndex: 1,
           x: rect.left,
           y: rect.top,
@@ -89,10 +89,10 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
           text: ''
         };
     
-        this.props.newNote(this.props.wall.id, note);
+        this.props.newNote(this.props.wall.name, note);
 
         // Pre select the note we're going to create
-        this.setState({...this.state, selectedNoteId: note.id});
+        this.setState({...this.state, selectedNoteId: note._id});
     }
 
     public selectedColour(id: string): string {
@@ -100,7 +100,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
     }
 
     public select(noteId: string): void {
-        this.props.selectNote(this.props.wall.id, noteId, this.props.user);
+        this.props.selectNote(this.props.wall.name, noteId, this.props.user);
         this.setState({...this.state, selectedNoteId: noteId});
     }
 
@@ -116,12 +116,12 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                  onMouseUp={() => this.unselect()}>
                 {
                     this.props.wall.notes.map(note => 
-                        <Card key={note.id} style={{ border: '2px solid', borderColor: this.selectedColour(note.id), width: '200px', height: '200px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
-                            onTouchStart={(e: React.TouchEvent) => this.select(note.id)}
-                            onMouseDown={(e: React.MouseEvent) => this.select(note.id)}>
+                        <Card key={note._id} style={{ border: '2px solid', borderColor: this.selectedColour(note._id), width: '200px', height: '200px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
+                            onTouchStart={(e: React.TouchEvent) => this.select(note._id)}
+                            onMouseDown={(e: React.MouseEvent) => this.select(note._id)}>
                             <Card.Body>
                                 <textarea value={note.text} 
-                                          onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.props.updateNoteText(this.props.wall.id, note.id, e.currentTarget.value)} 
+                                          onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.props.updateNoteText(this.props.wall.name, note._id, e.currentTarget.value)} 
                                           style={{ background: 'transparent', height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
                                 </textarea>
                             </Card.Body>

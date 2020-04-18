@@ -41,7 +41,7 @@ class User extends Component<StateProps & DispatchProps> {
                             this.state.showColourPicker ? 
                             <div style={{position: 'absolute', zIndex: 2}}>
                                 <div style={{position: 'fixed', top: 0, bottom: 0, left: 0, right: 0}} onClick={() => this.setState({...this.state, showColourPicker: false})}></div>
-                                <SketchPicker color={this.props.user.colour} onChange={(colour) => this.props.updateUser(this.props.user.id, { colour: colour.hex })} />
+                                <SketchPicker color={this.props.user.colour} onChange={(colour) => this.props.updateUser(this.props.user._id, { colour: colour.hex })} />
                             </div> 
                             : null
                         }
@@ -52,7 +52,7 @@ class User extends Component<StateProps & DispatchProps> {
                                     type="switch" 
                                     label="Night mode" 
                                     checked={this.props.user.useNightMode} 
-                                    onChange={() => this.props.updateUser(this.props.user.id, { useNightMode: !this.props.user.useNightMode })}>
+                                    onChange={() => this.props.updateUser(this.props.user._id, { useNightMode: !this.props.user.useNightMode })}>
                         </Form.Check>
                     </Navbar.Text>
                     <FormControl type="text" 
@@ -60,7 +60,7 @@ class User extends Component<StateProps & DispatchProps> {
                                 className="mr-sm-2" 
                                 style={{marginRight: '12px'}}
                                 value={this.props.user.name} 
-                                onChange={(e: React.FormEvent<HTMLInputElement>) => this.props.updateUser(this.props.user.id, { name: e.currentTarget.value })}/>
+                                onChange={(e: React.FormEvent<HTMLInputElement>) => this.props.updateUser(this.props.user._id, { name: e.currentTarget.value })}/>
                 </Form>
             </div>
         );

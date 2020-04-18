@@ -16,7 +16,7 @@ export function userReducer(
     // TODO on startup, grab id from local storage
     if (action.type === UpdateUser.name) {
         const updateUser = action as UpdateUser;
-        if (updateUser.userId === state.id) {
+        if (updateUser.userId === state._id) {
             return { ...state, ...updateUser.user };
         }
     }

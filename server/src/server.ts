@@ -2,9 +2,14 @@ import * as express from 'express';
 import * as expressWs from 'express-ws';
 import { NoteService } from './note.service';
 import * as path from 'path';
+import { WallStore } from './store/wall.store';
+import { NoteStore } from './store/note.store';
 
 class Server {
     public app: express.Application;
+
+    public wallStore = new WallStore();
+    public noteStore = new NoteStore();
 
     constructor(
         private port: number
@@ -21,7 +26,7 @@ class Server {
 
     private initializeWebSocket(app: express.Application): express.Application {
         const wsInstance = expressWs(app);
-        const noteService = new NoteService(wsInstance);
+        const noteService = new NoteService(this.wallStore, this.noteStore, wsInstance);
 
         wsInstance.app.ws('/ws', noteService.onWebSocket);
 

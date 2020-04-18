@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/niventc/wally#readme",
   "devDependencies": {
+    "@types/nedb": "^1.8.9",
     "ts-loader": "^6.2.2",
     "ts-node-dev": "^1.0.0-pre.44",
     "typescript": "^3.8.3",
@@ -30,6 +31,7 @@
     "@types/express-ws": "^3.0.0",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
+    "nedb": "^1.8.0",
     "wally-contract": "file:../contract"
   }
 }

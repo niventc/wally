@@ -1,6 +1,6 @@
 import React, { Component, Dispatch } from "react";
 import { Navbar, Nav, FormControl, Card, Button, Alert } from "react-bootstrap";
-import { User as UserModel, CreateWall, JoinWall, Wall as WallModel, Message } from "wally-contract";
+import { User as UserModel, CreateWall, JoinWall, Message, WallState } from "wally-contract";
 import { useParams, Switch, Route, Redirect } from "react-router-dom";
 
 import Wall from "./Wall";
@@ -10,7 +10,7 @@ import { SendWrapper } from "./webSocket.middleware";
 import { WallReducerState } from "./wall.reducer";
 
 interface HomeState {
-    wallId: string;
+    wallName: string;
 }
 
 interface WallProps {
@@ -19,17 +19,17 @@ interface WallProps {
 }
 
 interface WallLoaderParams {
-    id: string;
+    name: string;
 }
 
 const WallLoader: React.FunctionComponent = () => {
-    const { id } = useParams<WallLoaderParams>();
-    const wall = useSelector<any, WallModel>((state: any) => state.wall.wall);
+    const { name } = useParams<WallLoaderParams>();
+    const wall = useSelector<any, WallState>((state: any) => state.wall.wall);
     const dispatch = useDispatch();
 
     return (
         <div style={{width: '100%', height: '100%'}}>
-            {wall ? <Wall wall={wall}></Wall> : dispatch(new SendWrapper(new JoinWall(id)))}
+            {wall ? <Wall wall={wall}></Wall> : dispatch(new SendWrapper(new JoinWall(name)))}
         </div>
     )
 }
@@ -49,19 +49,19 @@ export default connect<WallProps, DispatchFromProps>(
 class Home extends Component<DispatchFromProps & WallProps> {
 
     public state: HomeState = {
-        wallId: ''
+        wallName: ''
     };
 
-    public updateWallId(e: React.FormEvent<HTMLInputElement>): void {
-        this.setState({...this.state, wallId: e.currentTarget.value});
+    public updateWallName(e: React.FormEvent<HTMLInputElement>): void {
+        this.setState({...this.state, wallName: e.currentTarget.value});
     }
 
     public createWall(): void {
-        this.props.createWall(this.state.wallId);
+        this.props.createWall(this.state.wallName);
     }
 
     public joinWall(): void {
-        this.props.joinWall(this.state.wallId);
+        this.props.joinWall(this.state.wallName);
     }
 
     public render(): JSX.Element {
@@ -83,7 +83,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
 
                 <div style={{ position: 'relative', width: '100%', height: '100%' }}>
 
-                    {this.props.wall.wall ? <Redirect to={"/" + this.props.wall.wall.id} /> : undefined}
+                    {this.props.wall.wall ? <Redirect to={"/" + this.props.wall.wall.name} /> : undefined}
                     {this.props.wall.error ? <Redirect to={"/"} /> : undefined}
 
                     <Switch>
@@ -100,7 +100,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
                                         <Card.Text>
                                             Enter an existing wall name or create a new wall to get started!
                                         </Card.Text>
-                                        <FormControl type="text" placeholder="Wall name" value={this.state.wallId} onChange={(e: React.FormEvent<HTMLInputElement>) => this.updateWallId(e)} />
+                                        <FormControl type="text" placeholder="Wall name" value={this.state.wallName} onChange={(e: React.FormEvent<HTMLInputElement>) => this.updateWallName(e)} />
                                     </Card.Body>
                                     <div style={{padding: '0 1.25rem 1.25rem'}}>
                                         <Button variant="primary" onClick={() => this.joinWall()} style={{width: '50%'}}>Join</Button>
@@ -116,7 +116,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
                                 }
                             </div>
                         </Route>
-                        <Route path="/:id">
+                        <Route path="/:name">
                             <WallLoader />
                         </Route>
                     </Switch>
