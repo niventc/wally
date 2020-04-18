@@ -37,12 +37,12 @@ class User extends Component<UserProps & StateProps & DispatchProps> {
     public render(): JSX.Element {
         return (
             <div className="text-center">                
-                <div style={{margin: 'auto'}}>
-                    <div style={{background: this.props.user.colour, width: '30px', height: '30px', borderRadius: '30px', cursor: 'pointer'}} 
+                <div style={{margin: 'auto', position: 'relative'}}>
+                    <div style={{background: this.props.user.colour, width: '32px', height: '32px', borderRadius: '32px', cursor: 'pointer'}} 
                         onClick={() => this.setState({...this.state, showColourPicker: true})}>&nbsp;</div>
                     {
                         this.state.showColourPicker ? 
-                        <div style={{position: 'absolute', zIndex: 2}}>
+                        <div style={{position: 'absolute', top: '-308px', zIndex: 2}}>
                             <div style={{position: 'fixed', top: 0, bottom: 0, left: 0, right: 0}} onClick={() => this.setState({...this.state, showColourPicker: false})}></div>
                             <SketchPicker color={this.props.user.colour} onChange={(colour) => this.props.updateUser(this.props.user._id, { colour: colour.hex })} />
                         </div> 
