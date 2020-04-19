@@ -1,9 +1,9 @@
 import * as  DataStore from 'nedb';
+import { WebSocketIdentity } from 'src/client.service';
 
 class Wall {
     public _id: string;
     public notes = new Array<string>();
-    public users = new Array<string>();
 
     constructor(public name: string) {}
 }
@@ -11,6 +11,9 @@ class Wall {
 export class WallStore {
 
     private dataStore: DataStore<Wall>;
+
+    // We don't need to persist clients, and a client 
+    public wallClientMap = new Map<string, Array<WebSocketIdentity>>();
 
     constructor() {
         this.dataStore = new DataStore({ filename: (process.env.NEDB_ROOT_DIR ? process.env.NEDB_ROOT_DIR : "./store") + "/walls.db", autoload: true });
@@ -66,8 +69,39 @@ export class WallStore {
                     console.log("Added note to wall");
                     resolve();
                 }
-            })
-        })
+            });
+        });
     }
 
+    public async addClient(name: string, identity: WebSocketIdentity): Promise<Array<WebSocketIdentity>> {
+        return new Promise((resolve, reject) => {
+            if (!this.wallClientMap.has(name)) {
+                this.wallClientMap.set(name, [identity]);
+            } else {
+                this.wallClientMap.get(name).push(identity);
+            }
+
+            // TODO remove client from other walls
+
+            resolve(this.wallClientMap.get(name));
+        });
+    }
+
+    public async getClients(name: string): Promise<Array<WebSocketIdentity>> {
+        return new Promise((resolve, reject) => {
+            if (!this.wallClientMap.has(name)) {
+                reject("Wall does not exist");
+            }
+            resolve(this.wallClientMap.get(name));
+        });
+    }
+
+    public async removeClient(identity: WebSocketIdentity): Promise<void> {
+        return new Promise((resolve, reject) => {
+            for (let [wall, clients] of this.wallClientMap) {
+                this.wallClientMap.set(wall, clients.filter(c => c.uuid !== identity.uuid));
+            }
+            resolve();
+        });        
+    }
 }

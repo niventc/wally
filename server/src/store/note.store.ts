@@ -44,7 +44,7 @@ export class NoteStore {
             } else if (numUpdated) {
                 console.log(`Updated ${numUpdated} record`);
             }
-        })
+        });
     }
 
     public deleteNote(noteId: string): void {
@@ -54,6 +54,6 @@ export class NoteStore {
             } else if (numDeleted) {
                 console.log(`Deleted ${numDeleted} records`);
             }
-        })
+        });
     }
 }

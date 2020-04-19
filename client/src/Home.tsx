@@ -83,6 +83,9 @@ class Home extends Component<DispatchFromProps & WallProps> {
                     { 
                         this.props.home.isSideBarOpen ? 
                         <Nav className="mr-auto" style={{ display: 'flex', flexDirection: 'column' }}>
+                            <Navbar.Text style={{ borderBottom: '1px solid'}}>
+                                Recently Viewed
+                            </Navbar.Text>
                             {this.props.home.recentWalls.map(w => <Nav.Link key={w} href={"/" + escape(w)}>{w}</Nav.Link>)}
                         </Nav>
                         : undefined

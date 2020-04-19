@@ -1,22 +1,22 @@
-import { v4 as uuidv4 } from 'uuid';
+import { User, Message, UpdateUser, UserConnected } from "wally-contract";
 
-import { User, Message, UpdateUser } from "wally-contract";
-
-const initialUser = new User(
-    uuidv4(),
-    `rgb(${Math.round(Math.random() * 255)},${Math.round(Math.random() * 255)},${Math.round(Math.random() * 255)})`,
-    "",
-    true
-);
+const initialState: User = {
+    id: '',
+    colour: '',
+    useNightMode: true,
+    name: ''
+};
 
 export function userReducer(
-    state: User = initialUser,
+    state: User = initialState,
     action: Message
 ) {
-    // TODO on startup, grab id from local storage
-    if (action.type === UpdateUser.name) {
+    if (action.type === UserConnected.name) {
+        const userConnected = action as UserConnected;
+        return userConnected.user;
+    } else if (action.type === UpdateUser.name) {
         const updateUser = action as UpdateUser;
-        if (updateUser.userId === state._id) {
+        if (state && updateUser.userId === state.id) {
             return { ...state, ...updateUser.user };
         }
     }

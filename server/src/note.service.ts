@@ -1,27 +1,33 @@
 import { WebsocketRequestHandler } from "express-ws";
-import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser } from "wally-contract";
-import expressWs = require('express-ws');
+import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall } from "wally-contract";
+
 import { NoteStore } from './store/note.store';
 import { WallStore } from './store/wall.store';
+import { UserStore } from './store/user.store';
+import { WebSocketClient, ClientService } from './client.service';
 
 export class NoteService {
 
     constructor(
+        private clientService: ClientService,
+        private userStore: UserStore,
         private wallStore: WallStore,
-        private noteStore: NoteStore,
-        private wsInstance: expressWs.Instance
+        private noteStore: NoteStore
     ) {}
 
     public onWebSocket: WebsocketRequestHandler = (ws, req, next): void => {
+        const wsc = <WebSocketClient><unknown>ws;
         ws.on('message', async (data: string) => {
-            console.log(data);
+            console.log("Received", data);
 
             const message = JSON.parse(data) as Message;
             
             switch (message.type) {
                 case UpdateUser.name:
-                    // TODO store some user state here
+                    const updateUser = message as UpdateUser;
+                    this.userStore.updateUser(updateUser.userId, updateUser.user);
                     ws.send(JSON.stringify(message));
+                    // TODO update other users who are the same wall as this user
                     break;
 
                 case CreateWall.name:
@@ -44,10 +50,19 @@ export class NoteService {
                         const joinError = `Wall with name '${joinWall.name}' does not exist`;
                         console.error(joinError);
                         ws.send(JSON.stringify(new WallyError(joinError)))
-                    } else {                   
-                        const notes = await this.noteStore.getNotes(joinedWall.notes);     
-                        // TODO add user
-                        ws.send(JSON.stringify(new WallState(joinedWall.name, notes, [])));
+                    } else {
+                        const clients = await this.wallStore.addClient(joinWall.name, (<WebSocketClient><unknown>ws).identity);       
+
+                        const notes = await this.noteStore.getNotes(joinedWall.notes);
+                        const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
+
+                        ws.send(JSON.stringify(new WallState(joinedWall.name, notes, users)));
+
+                        const otherUsers = clients.filter(c => c.uuid !== wsc.identity.uuid).map(c => c.uuid);
+                        const otherInstances = this.clientService.getInstances(otherUsers);
+                        const currentUser = await this.userStore.getClientUser(wsc.identity.clientId);
+                        const userJoined = JSON.stringify(new UserJoinedWall(joinWall.name, currentUser));
+                        otherInstances.forEach(x => x.send(userJoined));
                     }
                     break;
 
@@ -55,34 +70,40 @@ export class NoteService {
                     const newNote = message as NewNote;
                     this.noteStore.addNote(newNote.note);
                     this.wallStore.addNote(newNote.wallName, newNote.note._id);
-                    // TODO limit to wall users
-                    this.wsInstance.getWss().clients.forEach(x => x.send(JSON.stringify(newNote)));
+                    this.sendToWallUsers(newNote.wallName, newNote);
                     break;
 
                 case MoveNote.name:
                     const moveNote = message as MoveNote;
                     this.noteStore.updateNote(moveNote.noteId, { x: moveNote.x, y: moveNote.y });
-                    // TODO limit to wall users
-                    //const moveWall = this.wallStore.getWall(moveNote.wallName);
-                    this.wsInstance.getWss().clients.forEach(x => x.send(JSON.stringify(moveNote)));                    
+                    this.sendToWallUsers(moveNote.wallName, moveNote);                  
                     break;
 
                 case UpdateNoteText.name:
                     const updateNoteText = message as UpdateNoteText;
                     this.noteStore.updateNote(updateNoteText.noteId, { text: updateNoteText.text });
-                    // TODO limit to wall users
-                    //const textWall = this.walls.get(updateNoteText.wallId);
-                    this.wsInstance.getWss().clients.forEach(x => x.send(JSON.stringify(updateNoteText)));
+                    this.sendToWallUsers(updateNoteText.wallName, updateNoteText);
                     break;
 
                 case SelectNote.name:
                     const selectNote = message as SelectNote;
-                    this.wsInstance.getWss().clients.forEach(x => x.send(JSON.stringify(selectNote)));
+                    // TODO store
+                    this.sendToWallUsers(selectNote.wallName, selectNote);
                     break;
 
             }
         });
+    }
 
+    private async sendToWallUsers(wallName: string, message: Message): Promise<void> {
+        const clients = await this.wallStore.getClients(wallName);
+        const instances = this.clientService.getInstances(clients.map(x => x.uuid));
+        const json = JSON.stringify(message);
+        instances.forEach(i => {
+            if (i) { 
+                i.send(json);
+            }
+        });
     }
 
 }

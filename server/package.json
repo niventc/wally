@@ -32,6 +32,7 @@
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
     "nedb": "^1.8.0",
+    "uuid": "^7.0.3",
     "wally-contract": "file:../contract"
   }
 }

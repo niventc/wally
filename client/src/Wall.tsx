@@ -128,6 +128,16 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         </Card>
                     )
                 }
+
+                <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'row' }}>
+                    {
+                        this.props.wall.users.map(u => 
+                            <div key={u.id} style={{ backgroundColor: u.colour, margin: '6px', textAlign: 'center', lineHeight: '32px', fontWeight: 'bold', width: '32px', height: '32px', borderRadius: '32px'}}>
+                                {u.name?.substr(0, 1).toUpperCase()}
+                            </div>
+                        )
+                    }
+                </div>
                 
                 <div style={{ position: 'absolute', bottom: '10px', left: '10px', display: 'flex', flexDirection: 'row', width: '1000px', margin: 'auto', right: 0 }}>
                     {

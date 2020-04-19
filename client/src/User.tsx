@@ -1,6 +1,6 @@
 import { connect } from "react-redux";
 import React, { Component, Dispatch } from "react";
-import { Navbar, Form } from "react-bootstrap";
+import { Navbar, Form, FormControl } from "react-bootstrap";
 import { SketchPicker } from "react-color";
 
 import { User, UpdateUser, Message } from "wally-contract";
@@ -36,21 +36,9 @@ class User extends Component<UserProps & StateProps & DispatchProps> {
 
     public render(): JSX.Element {
         return (
-            <div className="text-center">                
-                <div style={{margin: 'auto', position: 'relative'}}>
-                    <div style={{background: this.props.user.colour, width: '32px', height: '32px', borderRadius: '32px', cursor: 'pointer'}} 
-                        onClick={() => this.setState({...this.state, showColourPicker: true})}>&nbsp;</div>
-                    {
-                        this.state.showColourPicker ? 
-                        <div style={{position: 'absolute', top: '-308px', zIndex: 2}}>
-                            <div style={{position: 'fixed', top: 0, bottom: 0, left: 0, right: 0}} onClick={() => this.setState({...this.state, showColourPicker: false})}></div>
-                            <SketchPicker color={this.props.user.colour} onChange={(colour) => this.props.updateUser(this.props.user._id, { colour: colour.hex })} />
-                        </div> 
-                        : null
-                    }
-                </div>
+            <div className="text-center">
                 <Navbar.Text>
-                    <div title={this.props.user.useNightMode ? "Use day mode" : "Use night mode"} style={{cursor: 'pointer'}} onClick={() => this.props.updateUser(this.props.user._id, { useNightMode: !this.props.user.useNightMode })}>
+                    <div title={this.props.user.useNightMode ? "Use day mode" : "Use night mode"} style={{cursor: 'pointer'}} onClick={() => this.props.updateUser(this.props.user.id, { useNightMode: !this.props.user.useNightMode })}>
                     {
                         this.props.user.useNightMode ?
                         <svg className="bi bi-sun" width="2em" height="2em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -64,16 +52,28 @@ class User extends Component<UserProps & StateProps & DispatchProps> {
                     </div>
                 </Navbar.Text>                
                 {
-                    this.props.isExpanded ?
-                    <Form inline style={{marginBottom: '12px'}}>
-                        {/* <FormControl type="text" 
+                    <Form inline style={{ marginBottom: '12px' }}>
+                        <div style={{margin: 'auto', position: 'relative'}}>
+                            <div style={{background: this.props.user.colour, width: '32px', height: '32px', lineHeight: '32px', fontWeight: 'bold', borderRadius: '32px', cursor: 'pointer'}} 
+                                 onClick={() => this.setState({...this.state, showColourPicker: true})}>
+                                {this.props.user.name?.substr(0, 1).toUpperCase()}
+                            </div>
+                            {
+                                this.state.showColourPicker ? 
+                                <div style={{position: 'absolute', top: '-308px', zIndex: 2}}>
+                                    <div style={{position: 'fixed', top: 0, bottom: 0, left: 0, right: 0}} onClick={() => this.setState({...this.state, showColourPicker: false})}></div>
+                                    <SketchPicker color={this.props.user.colour} onChange={(colour) => this.props.updateUser(this.props.user.id, { colour: colour.hex })} />
+                                </div> 
+                                : null
+                            }
+                        </div>
+                        <FormControl type="text" 
                                     placeholder="Name" 
                                     className="mr-sm-2" 
-                                    style={{marginRight: '12px'}}
+                                    style={{marginTop: '12px', marginRight: '12px', display: this.props.isExpanded ? 'inline-block' : 'none' }}
                                     value={this.props.user.name} 
-                                    onChange={(e: React.FormEvent<HTMLInputElement>) => this.props.updateUser(this.props.user._id, { name: e.currentTarget.value })}/> */}
+                                    onChange={(e: React.FormEvent<HTMLInputElement>) => this.props.updateUser(this.props.user.id, { name: e.currentTarget.value })}/>
                     </Form>
-                    : undefined 
                 }   
             </div>
         );

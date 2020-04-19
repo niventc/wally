@@ -18,6 +18,22 @@ export class JoinWall implements Message {
     }
 }
 
+export class UserJoinedWall implements Message {
+    type = "UserJoinedWall";
+
+    constructor(
+        public wallName: string,
+        public user: User
+    ) {}
+}
+
+export class LeaveWall implements Message {
+    type = "LeaveWall";
+
+    constructor(public name: string) {
+    }
+}
+
 export class WallState implements Message {
     type = "WallState";
 
@@ -83,12 +99,17 @@ export class DeleteNote implements Message {
     }
 }
 
+export class UserConnected implements Message {
+    type = "UserConnected";
+
+    constructor(public user: User) {}
+}
+
 export class UpdateUser implements Message {
     type = "UpdateUser";
 
     constructor(
         public userId: string,
         public user: Partial<User>
-    ) {
-    }
+    ) {}
 }

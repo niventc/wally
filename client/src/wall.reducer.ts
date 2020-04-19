@@ -1,4 +1,4 @@
-import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText } from "wally-contract";
+import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall } from "wally-contract";
 
 export interface WallReducerState {
     wall?: WallState | undefined;
@@ -14,7 +14,6 @@ export function wallReducer(
     state: WallReducerState = initialState,
     action: Message
 ): WallReducerState {
-    console.log("reduce", action);
     switch (action.type) {
         case WallyError.name:
             const error = action as WallyError;
@@ -62,6 +61,16 @@ export function wallReducer(
                     wall: {
                         ...state.wall,
                         notes: [...state.wall.notes.filter(n => n._id !== updateNoteText.noteId), updatedNote]
+                    }
+                };
+
+            case UserJoinedWall.name:
+                const userJoinedWall = action as UserJoinedWall;
+                return {
+                    ...state,
+                    wall: {
+                        ...state.wall,
+                        users: [...state.wall.users.filter(x => x.id !== userJoinedWall.user.id), userJoinedWall.user]
                     }
                 };
         }

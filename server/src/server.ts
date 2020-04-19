@@ -2,14 +2,21 @@ import * as express from 'express';
 import * as expressWs from 'express-ws';
 import { NoteService } from './note.service';
 import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+
 import { WallStore } from './store/wall.store';
 import { NoteStore } from './store/note.store';
+import { WebSocketClient, ClientService, WebSocketIdentity } from './client.service';
+import { UserStore } from './store/user.store';
+import { UpdateUser, UserConnected } from 'wally-contract';
 
 class Server {
     public app: express.Application;
 
-    public wallStore = new WallStore();
-    public noteStore = new NoteStore();
+    private clientService = new ClientService();
+    private userStore = new UserStore();
+    private wallStore = new WallStore();
+    private noteStore = new NoteStore();
 
     constructor(
         private port: number
@@ -26,12 +33,25 @@ class Server {
 
     private initializeWebSocket(app: express.Application): express.Application {
         const wsInstance = expressWs(app);
-        const noteService = new NoteService(this.wallStore, this.noteStore, wsInstance);
+        const noteService = new NoteService(this.clientService, this.userStore, this.wallStore, this.noteStore);
 
         wsInstance.app.ws('/ws', noteService.onWebSocket);
 
-        wsInstance.getWss().on("connection", (ws, req) => {
-            console.log("connected");
+        wsInstance.getWss().on("connection", async (ws, req) => {
+            const clientId = (<any>req).query['clientId'];
+            const wsc = <WebSocketClient><unknown>ws;
+            wsc.identity = new WebSocketIdentity(uuidv4(), clientId);
+            this.clientService.addClient(wsc);
+            const user = await this.userStore.getOrCreateUser(clientId);
+            ws.send(JSON.stringify(new UserConnected(user)));
+            console.log("Client connected", wsc.identity);
+
+            ws.onclose = () => {
+                this.clientService.removeClient(wsc);
+                this.wallStore.removeClient(wsc.identity);
+                // TODO send client left wall... both on page close/refresh and on join new wall
+                console.log(`Client disconnected`, wsc.identity);
+            };
         });
 
         return wsInstance.app;
