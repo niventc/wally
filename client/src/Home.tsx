@@ -101,7 +101,16 @@ class Home extends Component<DispatchFromProps & WallProps> {
                                 title="Toggle Sidebar"
                                 variant={this.props.user.useNightMode ? 'dark' : 'light'} 
                                 onClick={() => this.props.toggleSideBar()}>
-                            {this.props.home.isSideBarOpen ? '<' : '>'}
+                            {
+                                this.props.home.isSideBarOpen ? 
+                                <svg className="bi bi-chevron-left" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path fillRule="evenodd" d="M11.354 1.646a.5.5 0 010 .708L5.707 8l5.647 5.646a.5.5 0 01-.708.708l-6-6a.5.5 0 010-.708l6-6a.5.5 0 01.708 0z" clipRule="evenodd"/>
+                                </svg>
+                                :
+                                <svg className="bi bi-chevron-right" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                    <path fillRule="evenodd" d="M4.646 1.646a.5.5 0 01.708 0l6 6a.5.5 0 010 .708l-6 6a.5.5 0 01-.708-.708L10.293 8 4.646 2.354a.5.5 0 010-.708z" clipRule="evenodd"/>
+                                </svg>
+                            }
                         </Button>
                     </Nav>
                 </Navbar>
