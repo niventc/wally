@@ -9,6 +9,7 @@ import User from "./User";
 import { SendWrapper } from "./webSocket.middleware";
 import { WallReducerState } from "./wall.reducer";
 import { HomeReducerState } from "./home.reducer";
+import { componentDidMountChanges, useTraceUpdate } from "./utils";
 
 interface HomeState {
     wallName: string;
@@ -24,10 +25,12 @@ interface WallLoaderParams {
     name: string;
 }
 
-const WallLoader: React.FunctionComponent = () => {
+const WallLoader: React.FunctionComponent = (props: any) => {
     const { name } = useParams<WallLoaderParams>();
     const wall = useSelector<any, WallState>((state: any) => state.wall.wall);
     const dispatch = useDispatch();
+
+    useTraceUpdate(props);
 
     return (
         <div style={{width: '100%', height: '100%'}}>
@@ -56,6 +59,10 @@ class Home extends Component<DispatchFromProps & WallProps> {
         wallName: ''
     };
 
+    public componentDidUpdate(prevProps: any, prevState: any): void {
+        componentDidMountChanges(this.props, prevProps, this.state, prevState);
+    }
+
     public updateWallName(e: React.FormEvent<HTMLInputElement>): void {
         this.setState({...this.state, wallName: e.currentTarget.value});
     }
@@ -83,7 +90,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
                     { 
                         this.props.home.isSideBarOpen ? 
                         <Nav className="mr-auto" style={{ display: 'flex', flexDirection: 'column' }}>
-                            <Navbar.Text style={{ borderBottom: '1px solid'}}>
+                            <Navbar.Text style={{ borderBottom: '1px solid', textTransform: 'uppercase', fontSize: 'small'}}>
                                 Recently Viewed
                             </Navbar.Text>
                             {this.props.home.recentWalls.map(w => <Nav.Link key={w} href={"/" + escape(w)}>{w}</Nav.Link>)}

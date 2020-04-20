@@ -4,6 +4,7 @@ import { Note } from 'wally-contract';
 export class NoteStore {
 
     private dataStore: DataStore<Note>;
+    private selectedNotes = new Map<string, string>();
 
     constructor() {
         this.dataStore = new DataStore({ filename: (process.env.NEDB_ROOT_DIR ? process.env.NEDB_ROOT_DIR : "./store") + "/notes.db", autoload: true });
@@ -55,5 +56,13 @@ export class NoteStore {
                 console.log(`Deleted ${numDeleted} records`);
             }
         });
+    }
+
+    public selectNote(noteId: string, userId: string): void {
+        this.selectedNotes.set(userId, noteId);
+    }
+
+    public getUserSelectedNote(userId: string): string {
+        return this.selectedNotes.get(userId);
     }
 }

@@ -68,7 +68,6 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     if (e && this.state.selectedNoteId && this.wallRef.current) {
                         const bounding = this.wallRef.current.getBoundingClientRect();
                         const mousemove = e as MouseEvent;
-                        e.stopPropagation();      
                         this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, mousemove.clientX - bounding.left, mousemove.clientY - bounding.top);
                     }
                 });
@@ -95,13 +94,28 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         this.setState({...this.state, selectedNoteId: note._id});
     }
 
-    public selectedColour(id: string): string {
-        return "red";
+    public getBorder(noteId: string): string {
+        const userIds = Object.entries(this.props.wall.selectedNotes).filter(x => x[1] === noteId);
+        const users = userIds.map(u => this.props.wall.users.find(x => x.id === u[0])).filter(x => x).map(x => x as User);
+
+        let borders = [];
+        for (let i = 0; i < users.length; i++) {
+            borders.push(`0 0 0 ${(i+1) * 4}px ${users[i].colour}`)
+        }
+        return borders.join(',');
     }
 
-    public select(noteId: string): void {
-        this.props.selectNote(this.props.wall.name, noteId, this.props.user);
+    public select(noteId: string, e: React.MouseEvent | React.TouchEvent) {
+        this.props.selectNote(this.props.wall.name, noteId, this.props.user);        
+        e.stopPropagation();
+    }
+
+    public startMove(noteId: string, e: React.MouseEvent | React.TouchEvent): void {
+        this.props.selectNote(this.props.wall.name, noteId, this.props.user); 
         this.setState({...this.state, selectedNoteId: noteId});
+
+        e.stopPropagation();
+        e.preventDefault();
     }
 
     public unselect(): void {
@@ -116,11 +130,12 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                  onMouseUp={() => this.unselect()}>
                 {
                     this.props.wall.notes.map(note => 
-                        <Card key={note._id} style={{ border: '2px solid', borderColor: this.selectedColour(note._id), width: '200px', height: '200px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
-                            onTouchStart={(e: React.TouchEvent) => this.select(note._id)}
-                            onMouseDown={(e: React.MouseEvent) => this.select(note._id)}>
+                        <Card key={note._id} style={{ width: '200px', boxShadow: this.getBorder(note._id), height: '200px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
+                            onTouchStart={(e: React.TouchEvent) => this.startMove(note._id,e)}
+                            onMouseDown={(e: React.MouseEvent) => this.startMove(note._id,e)}>
                             <Card.Body>
                                 <textarea value={note.text} 
+                                          onMouseDown={(e: React.MouseEvent) => this.select(note._id,e)}
                                           onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.props.updateNoteText(this.props.wall.name, note._id, e.currentTarget.value)} 
                                           style={{ background: 'transparent', height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
                                 </textarea>

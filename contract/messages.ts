@@ -37,7 +37,13 @@ export class LeaveWall implements Message {
 export class WallState implements Message {
     type = "WallState";
 
-    constructor(public name: string, public notes: Array<Note>, public users: Array<User>) {
+    constructor(
+        public name: string, 
+        public notes: Array<Note>, 
+        public users: Array<User>,
+        // user id to note id
+        public selectedNotes: { [key: string] : string }
+    ) {
     }
 }
 

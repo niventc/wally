@@ -12,7 +12,7 @@ export class WallStore {
 
     private dataStore: DataStore<Wall>;
 
-    // We don't need to persist clients, and a client 
+    // We don't need to persist clients
     public wallClientMap = new Map<string, Array<WebSocketIdentity>>();
 
     constructor() {
@@ -71,6 +71,15 @@ export class WallStore {
                 }
             });
         });
+    }
+
+    public doesWallHaveClient(name: string, identity: WebSocketIdentity): boolean {
+        if (this.wallClientMap.has(name)) {
+            if (this.wallClientMap.get(name).find(x => x.uuid === identity.uuid)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public async addClient(name: string, identity: WebSocketIdentity): Promise<Array<WebSocketIdentity>> {

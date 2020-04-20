@@ -39,7 +39,7 @@ export class NoteService {
                     } else {
                         const wall = await this.wallStore.createWall(createWall.name);
                         // TODO add user
-                        ws.send(JSON.stringify(new WallState(wall.name, [], [])));
+                        ws.send(JSON.stringify(new WallState(wall.name, [], [], {})));
                     }
                     break;
 
@@ -51,12 +51,24 @@ export class NoteService {
                         console.error(joinError);
                         ws.send(JSON.stringify(new WallyError(joinError)))
                     } else {
-                        const clients = await this.wallStore.addClient(joinWall.name, (<WebSocketClient><unknown>ws).identity);       
+                        // If we're already joined then stop here
+                        if (this.wallStore.doesWallHaveClient(joinWall.name, wsc.identity)) {
+                            break;
+                        }
+
+                        const clients = await this.wallStore.addClient(joinWall.name, wsc.identity);       
 
                         const notes = await this.noteStore.getNotes(joinedWall.notes);
                         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
+                        const selected = {};
+                        users.forEach(u => {
+                            const noteId = this.noteStore.getUserSelectedNote(u.id);
+                            if (noteId) {
+                                selected[u.id] = noteId;
+                            }
+                        });
 
-                        ws.send(JSON.stringify(new WallState(joinedWall.name, notes, users)));
+                        ws.send(JSON.stringify(new WallState(joinedWall.name, notes, users, selected)));
 
                         const otherUsers = clients.filter(c => c.uuid !== wsc.identity.uuid).map(c => c.uuid);
                         const otherInstances = this.clientService.getInstances(otherUsers);
@@ -87,7 +99,7 @@ export class NoteService {
 
                 case SelectNote.name:
                     const selectNote = message as SelectNote;
-                    // TODO store
+                    this.noteStore.selectNote(selectNote.noteId, selectNote.byUser.id);
                     this.sendToWallUsers(selectNote.wallName, selectNote);
                     break;
 
