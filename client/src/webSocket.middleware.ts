@@ -26,9 +26,9 @@ export const webSocketMiddleware: () => Middleware = () => {
     };
 
     const getWebSocketBaseAddress = () => {
-        if (process.env.REACT_APP_WS_URL) {
+        if (process.env.NODE_ENV === "development") {
             // local development, environment variables are set at build time so can't overwrite in production
-            return process.env.REACT_APP_WS_URL;
+            return "ws://localhost:5000/ws";
         }
         return (window.location.protocol.toLowerCase() === "https" ? "wss" : "ws") + "://" + window.location.host + "/ws";
     };
