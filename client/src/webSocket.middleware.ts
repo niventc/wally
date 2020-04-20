@@ -30,7 +30,7 @@ export const webSocketMiddleware: () => Middleware = () => {
             // local development, environment variables are set at build time so can't overwrite in production
             return "ws://localhost:5000/ws";
         }
-        return (window.location.protocol.toLowerCase() === "https" ? "wss" : "ws") + "://" + window.location.host + "/ws";
+        return (window.location.protocol.toLowerCase() === "https:" ? "wss" : "ws") + "://" + window.location.host + "/ws";
     };
 
     const getWebSocketAddress = () => {
