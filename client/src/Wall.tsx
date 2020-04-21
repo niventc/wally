@@ -1,10 +1,10 @@
-import React, { Component, Dispatch, createRef } from "react";
+import React, { Component, Dispatch, createRef, PointerEvent } from "react";
 import { v4 as uuidv4 } from 'uuid';
 import { Card } from "react-bootstrap";
 
 import { NewNote, Message, Note, UpdateNoteText, MoveNote, SelectNote, User, WallState } from "wally-contract";
 import { connect } from "react-redux";
-import { fromEvent, combineLatest } from "rxjs";
+import { fromEvent, combineLatest, merge } from "rxjs";
 import { startWith, throttleTime, map } from "rxjs/operators";
 import { SendWrapper } from "./webSocket.middleware";
 
@@ -54,21 +54,28 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
 
     public componentDidMount(): void {
         if (this.wallRef.current) {
-            const mousemove = fromEvent(this.wallRef.current, "mousemove").pipe(startWith(undefined));
-            const touchmove = fromEvent(this.wallRef.current, "touchmove").pipe(startWith(undefined));
+            const mousemove = fromEvent<PointerEvent>(this.wallRef.current, "pointermove").pipe(startWith(undefined));
+            const touchmove = fromEvent<TouchEvent>(this.wallRef.current, "touchmove").pipe(startWith(undefined));
       
-            combineLatest([mousemove, touchmove])
+            merge(mousemove, touchmove)
                 .pipe(
                     throttleTime(50),
-                    map(([mouse, touch]: [Event | undefined, Event | undefined]) => {
-                    return mouse ? mouse : touch;
+                    map(e => {
+                        if (e) {
+                            if (e.type === "pointermove") {
+                                const mousemove = e as PointerEvent;
+                                return [mousemove.clientX, mousemove.clientY];
+                            } else if (e.type === "touchmove") {
+                                const touchmove = e as TouchEvent;
+                                return [touchmove.touches[0].clientX, touchmove.touches[0].clientY];
+                            }
+                        }
                     })
                 )
                 .subscribe(e => {
                     if (e && this.state.selectedNoteId && this.wallRef.current) {
                         const bounding = this.wallRef.current.getBoundingClientRect();
-                        const mousemove = e as MouseEvent;
-                        this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, mousemove.clientX - bounding.left, mousemove.clientY - bounding.top);
+                        this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, e[0] - bounding.left, e[1] - bounding.top);
                     }
                 });
         }
@@ -105,7 +112,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         return borders.join(',');
     }
 
-    public select(noteId: string, e: React.MouseEvent | React.TouchEvent) {
+    public select(noteId: string, e: React.PointerEvent) {
         this.props.selectNote(this.props.wall.name, noteId, this.props.user);        
         e.stopPropagation();
     }
@@ -125,17 +132,15 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
     public render(): JSX.Element {
         return (
             <div ref={this.wallRef} 
-                 style={{position: 'relative', width: '100%', height: '100%'}}
-                 onTouchEnd={() => this.unselect()}
-                 onMouseUp={() => this.unselect()}>
+                 style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
+                 onTouchEnd={() => this.unselect()} onPointerUp={() => this.unselect()}>
                 {
                     this.props.wall.notes.map(note => 
                         <Card key={note._id} style={{ width: '200px', boxShadow: this.getBorder(note._id), height: '200px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
-                            onTouchStart={(e: React.TouchEvent) => this.startMove(note._id,e)}
-                            onMouseDown={(e: React.MouseEvent) => this.startMove(note._id,e)}>
+                            onPointerDown={(e: React.PointerEvent) => this.startMove(note._id,e)}>
                             <Card.Body>
                                 <textarea value={note.text} 
-                                          onMouseDown={(e: React.MouseEvent) => this.select(note._id,e)}
+                                          onPointerDown={(e: React.PointerEvent) => this.select(note._id,e)}
                                           onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.props.updateNoteText(this.props.wall.name, note._id, e.currentTarget.value)} 
                                           style={{ background: 'transparent', height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
                                 </textarea>

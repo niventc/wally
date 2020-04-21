@@ -1,5 +1,7 @@
 import { useRef, useEffect } from "react";
 
+const loggingEnabled = false;
+
 export function useTraceUpdate(props: any) {
     const prev = useRef(props);
     useEffect(() => {
@@ -10,7 +12,7 @@ export function useTraceUpdate(props: any) {
             return ps;
         }, {});
         if (Object.keys(changedProps).length > 0) {
-            console.log('Changed props:', changedProps);
+            loggingEnabled && console.log('Changed props:', changedProps);
         }
         prev.current = props;
     });
@@ -18,11 +20,11 @@ export function useTraceUpdate(props: any) {
 
 export function componentDidMountChanges(props: any, prevProps: any, state: any, prevState: any): void {
     Object.entries(props).forEach(([key, val]) =>
-        prevProps[key] !== val && console.log(`Prop '${key}' changed`)
+        prevProps[key] !== val && loggingEnabled && console.log(`Prop '${key}' changed`)
     );
     if (state) {
         Object.entries(state).forEach(([key, val]) =>
-            prevState[key] !== val && console.log(`State '${key}' changed`)
+            prevState[key] !== val && loggingEnabled && console.log(`State '${key}' changed`)
         );
     }
 }
