@@ -17,6 +17,8 @@ interface WallProps {
 interface WallComponentState {
     colours: Array<string>;
     selectedNoteId: string | undefined;
+    lines: Array<Array<[number, number]>>;
+    line: Array<[number, number]> | undefined;
 }
 
 interface StateProps {
@@ -51,19 +53,39 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             'dodgerblue',
             'deeppink'
         ],
-        selectedNoteId: undefined
-    }
+        selectedNoteId: undefined,
+        lines: new Array<any>(),
+        line: undefined
+    };
     
     public wallRef = createRef<HTMLDivElement>();
 
+
     public componentDidMount(): void {
         if (this.wallRef.current) {
+            const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown").pipe(startWith(undefined));
+            const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup").pipe(startWith(undefined));
+            pointerdown.subscribe(e => {
+                const line = new Array<any>();
+                this.setState({
+                    ...this.state,
+                    line: line
+                });
+            });
+            pointerup.subscribe(e => {
+                this.setState({
+                    ...this.state,
+                    lines: [...this.state.lines, this.state.line],
+                    line: undefined
+                });
+            });
+
             const mousemove = fromEvent<PointerEvent>(this.wallRef.current, "pointermove").pipe(startWith(undefined));
             const touchmove = fromEvent<TouchEvent>(this.wallRef.current, "touchmove").pipe(startWith(undefined));
       
             merge(mousemove, touchmove)
                 .pipe(
-                    throttleTime(50),
+                    throttleTime(10),
                     map(e => {
                         if (e) {
                             if (e.type === "pointermove") {
@@ -77,9 +99,16 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     })
                 )
                 .subscribe(e => {
-                    if (e && this.state.selectedNoteId && this.wallRef.current) {
+                    if (this.wallRef.current) {
                         const bounding = this.wallRef.current.getBoundingClientRect();
-                        this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, e[0] - bounding.left, e[1] - bounding.top);
+                        if (e && this.state.selectedNoteId) {
+                            this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, e[0] - bounding.left, e[1] - bounding.top);
+                        } else if (e && this.state.line) {
+                            this.setState({
+                                ...this.state,
+                                line: [...this.state.line, [e[0] - bounding.left, e[1] - bounding.top]]
+                            });
+                        }                            
                     }
                 });
         }
@@ -138,6 +167,17 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         this.setState({...this.state, selectedNoteId: undefined});
     }
 
+    public getSvgFromLine(line: Array<[number, number]>): string {
+        if (!line || !line[0]) {
+            return '';
+        }
+        const first = line[0];
+        const m = `M ${first[0]} ${first[1]}`;
+        const l = line.slice(1, line.length).map(p => `L ${p[0]} ${p[1]}`);
+        const svg = `${m} ${l.join(' ')}`;
+        return svg;
+    }
+
     public render(): JSX.Element {
         return (
             <div ref={this.wallRef} 
@@ -168,6 +208,19 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         </Card>
                     )
                 }
+              
+                {/* <svg style={{width: '100%', height: '100%'}}>
+                    {
+                        this.state.lines.map(l => 
+                            <path id="lineAB" d={this.getSvgFromLine(l)} stroke="purple" strokeWidth="3" fill="none" />
+                        )
+                    }
+                    {
+                        this.state.line ?
+                        <path id="lineAB" d={this.getSvgFromLine(this.state.line)} stroke="red" strokeWidth="3" fill="none" />
+                        : undefined
+                    }
+                </svg>*/}
 
                 <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'row' }}>
                     {
