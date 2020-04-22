@@ -1,5 +1,5 @@
 import { WebsocketRequestHandler } from "express-ws";
-import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall } from "wally-contract";
+import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall, DeleteNote } from "wally-contract";
 
 import { NoteStore } from './store/note.store';
 import { WallStore } from './store/wall.store';
@@ -101,6 +101,13 @@ export class NoteService {
                     const selectNote = message as SelectNote;
                     this.noteStore.selectNote(selectNote.noteId, selectNote.byUser.id);
                     this.sendToWallUsers(selectNote.wallName, selectNote);
+                    break;
+
+                case DeleteNote.name:
+                    const deleteNote = message as DeleteNote;
+                    this.wallStore.removeNote(deleteNote.wallName, deleteNote.noteId);
+                    this.noteStore.deleteNote(deleteNote.noteId);
+                    this.sendToWallUsers(deleteNote.wallName, deleteNote);
                     break;
 
             }

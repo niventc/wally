@@ -1,4 +1,4 @@
-import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall, SelectNote } from "wally-contract";
+import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall, SelectNote, DeleteNote } from "wally-contract";
 
 export interface WallReducerState {
     wall?: WallState | undefined;
@@ -33,6 +33,21 @@ export function wallReducer(
                     return state;
                 }
                 return { ...state, wall: {...state.wall, notes: [...state.wall.notes, newNote.note] } };
+
+            case DeleteNote.name:
+                const deleteNote = action as DeleteNote;
+                if (state.wall.name !== deleteNote.wallName) {
+                    return state;
+                }
+                return {
+                    ...state,
+                    wall: {
+                        ...state.wall,
+                        notes: [
+                            ...state.wall.notes.filter(n => n._id !== deleteNote.noteId)
+                        ]
+                    }
+                };
 
             case MoveNote.name:
                 const moveNote = action as MoveNote;

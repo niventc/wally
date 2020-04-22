@@ -73,6 +73,20 @@ export class WallStore {
         });
     }
 
+    public async removeNote(name: string, noteId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.dataStore.update({ name: name }, { $pull: { notes: noteId } }, {}, (error, numUpdated, upsert) => {
+                if (error) {
+                    console.error("Failed to remove note", error);
+                    reject(error);
+                } else {
+                    console.log("Removed note from wall");
+                    resolve();
+                }
+            });
+        });
+    }
+
     public doesWallHaveClient(name: string, identity: WebSocketIdentity): boolean {
         if (this.wallClientMap.has(name)) {
             if (this.wallClientMap.get(name).find(x => x.uuid === identity.uuid)) {
