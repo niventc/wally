@@ -35,4 +35,18 @@ export class LineStore {
             })
         });        
     }
+
+    public async addPointsToLine(lineId: string, points: Array<[number, number]>): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.dataStore.update({ _id: lineId }, { $push: { points: { $each: points } } }, {}, (error, numUpdated, upsert) => {
+                if (error) {
+                    console.error("Failed to update line", error);
+                    reject(error);
+                } else {
+                    console.log("Added points to line");
+                    resolve();
+                }
+            });
+        });
+    }
 }

@@ -1,10 +1,10 @@
 import React, { Component, Dispatch, createRef, PointerEvent } from "react";
 import { v4 as uuidv4 } from 'uuid';
-import { Card } from "react-bootstrap";
+import { Card, Button } from "react-bootstrap";
 
 import './wall.css';
 
-import { NewNote, Message, Note, UpdateNoteText, MoveNote, SelectNote, User, WallState, DeleteNote } from "wally-contract";
+import { NewNote, Message, Note, UpdateNoteText, MoveNote, SelectNote, User, WallState, DeleteNote, NewLine, UpdateLine, DeleteLine, Line } from "wally-contract";
 import { connect } from "react-redux";
 import { fromEvent, merge } from "rxjs";
 import { startWith, throttleTime, map } from "rxjs/operators";
@@ -17,8 +17,7 @@ interface WallProps {
 interface WallComponentState {
     colours: Array<string>;
     selectedNoteId: string | undefined;
-    lines: Array<Array<[number, number]>>;
-    line: Array<[number, number]> | undefined;
+    selectedLineId: string | undefined;
 }
 
 interface StateProps {
@@ -31,6 +30,8 @@ interface ConnectedProps {
     updateNoteText: (wallId: string, noteId: string, text: string) => void;
     moveNote: (wallId: string, noteId: string, x: number, y: number) => void;
     deleteNote: (wallId: string, noteId: string) => void;
+    newLine: (wallId: string, line: Line) => void;
+    updateLine: (wallId: string, lineId: string, points: Array<[number, number]>) => void;
 }
 
 export default connect<StateProps, ConnectedProps>(
@@ -40,7 +41,9 @@ export default connect<StateProps, ConnectedProps>(
         selectNote: (wallId: string, noteId: string, user: User) => dispatch(new SendWrapper(new SelectNote(wallId, noteId, user))),
         updateNoteText: (wallId: string, noteId: string, text: string) => dispatch(new SendWrapper(new UpdateNoteText(wallId, noteId, text))),
         moveNote: (wallId: string, noteId: string, x: number, y: number) => dispatch(new SendWrapper(new MoveNote(wallId, noteId, x, y))),
-        deleteNote: (wallId: string, noteId: string) => dispatch(new SendWrapper(new DeleteNote(wallId, noteId)))
+        deleteNote: (wallId: string, noteId: string) => dispatch(new SendWrapper(new DeleteNote(wallId, noteId))),
+        newLine: (wallId: string, line: Line) => dispatch(new SendWrapper(new NewLine(wallId, line))),
+        updateLine: (wallId: string, lineId: string, points: Array<[number, number]>) => dispatch(new SendWrapper(new UpdateLine(wallId, lineId, points)))
     })
 )(
 class Wall extends Component<WallProps & StateProps & ConnectedProps> {
@@ -54,8 +57,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             'deeppink'
         ],
         selectedNoteId: undefined,
-        lines: new Array<any>(),
-        line: undefined
+        selectedLineId: undefined
     };
     
     public wallRef = createRef<HTMLDivElement>();
@@ -63,20 +65,24 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
 
     public componentDidMount(): void {
         if (this.wallRef.current) {
-            const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown").pipe(startWith(undefined));
-            const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup").pipe(startWith(undefined));
+            const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");
+            const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
             pointerdown.subscribe(e => {
-                const line = new Array<any>();
-                this.setState({
-                    ...this.state,
-                    line: line
-                });
+                if (this.wallRef.current) {
+                    const pointerDown = e as PointerEvent;                
+                    const bounding = this.wallRef.current.getBoundingClientRect();
+                    const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], "red", 3);
+                    this.setState({
+                        ...this.state,
+                        selectedLineId: line._id
+                    });
+                    this.props.newLine(this.props.wall.name, line);
+                }
             });
             pointerup.subscribe(e => {
                 this.setState({
                     ...this.state,
-                    lines: [...this.state.lines, this.state.line],
-                    line: undefined
+                    selectedLineId: undefined
                 });
             });
 
@@ -85,15 +91,15 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
       
             merge(mousemove, touchmove)
                 .pipe(
-                    throttleTime(10),
+                    throttleTime(50),
                     map(e => {
                         if (e) {
                             if (e.type === "pointermove") {
                                 const mousemove = e as PointerEvent;
-                                return [mousemove.clientX, mousemove.clientY];
+                                return [mousemove.clientX, mousemove.clientY] as [number, number];
                             } else if (e.type === "touchmove") {
                                 const touchmove = e as TouchEvent;
-                                return [touchmove.touches[0].clientX, touchmove.touches[0].clientY];
+                                return [touchmove.touches[0].clientX, touchmove.touches[0].clientY] as [number, number];
                             }
                         }
                     })
@@ -103,11 +109,12 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         const bounding = this.wallRef.current.getBoundingClientRect();
                         if (e && this.state.selectedNoteId) {
                             this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, e[0] - bounding.left, e[1] - bounding.top);
-                        } else if (e && this.state.line) {
-                            this.setState({
-                                ...this.state,
-                                line: [...this.state.line, [e[0] - bounding.left, e[1] - bounding.top]]
-                            });
+                        } else if (e && this.state.selectedLineId) {
+                            // this.setState({
+                            //     ...this.state,
+                            //     line: [...this.state.line, [e[0] - bounding.left, e[1] - bounding.top]]
+                            // });
+                            this.props.updateLine(this.props.wall.name, this.state.selectedLineId, [[e[0] - bounding.left, e[1] - bounding.top]]);
                         }                            
                     }
                 });
@@ -209,18 +216,18 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     )
                 }
               
-                {/* <svg style={{width: '100%', height: '100%'}}>
+                <svg style={{width: '100%', height: '100%'}}>
                     {
-                        this.state.lines.map(l => 
-                            <path id="lineAB" d={this.getSvgFromLine(l)} stroke="purple" strokeWidth="3" fill="none" />
+                        this.props.wall.lines.map(l => 
+                            <path key={l._id} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
                         )
                     }
-                    {
+                    {/* {
                         this.state.line ?
                         <path id="lineAB" d={this.getSvgFromLine(this.state.line)} stroke="red" strokeWidth="3" fill="none" />
                         : undefined
-                    }
-                </svg>*/}
+                    } */}
+                </svg>
 
                 <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'row' }}>
                     {
@@ -233,6 +240,9 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 </div>
                 
                 <div style={{ position: 'absolute', bottom: '10px', left: '10px', display: 'flex', flexDirection: 'row', width: '1000px', margin: 'auto', right: 0 }}>
+                    <Button>
+                        Pen
+                    </Button>
                     {
                         this.state.colours.map(c => 
                             <Card key={c} 

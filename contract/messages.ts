@@ -1,4 +1,4 @@
-import { Note, User } from "./model";
+import { Note, User, Line } from "./model";
 
 export class Message {
     type: string;
@@ -39,6 +39,7 @@ export class WallState implements Message {
 
     constructor(
         public name: string, 
+        public lines: Array<Line>,
         public notes: Array<Note>, 
         public users: Array<User>,
         // user id to note id
@@ -103,6 +104,34 @@ export class DeleteNote implements Message {
         public noteId: string
     ) {
     }
+}
+
+export class NewLine implements Message {
+    type = "NewLine";
+
+    constructor(
+        public wallName: string,
+        public line: Line
+    ) {}
+}
+
+export class UpdateLine implements Message {
+    type = "UpdateLine";
+
+    constructor(
+        public wallName: string,
+        public lineId: string,
+        public points: Array<[number, number]>
+    ) {}
+}
+
+export class DeleteLine implements Message {
+    type = "DeleteLine";
+
+    constructor(
+        public wallName: string,
+        public lineId: string
+    ) {}
 }
 
 export class UserConnected implements Message {

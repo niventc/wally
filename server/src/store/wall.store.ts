@@ -3,6 +3,7 @@ import { WebSocketIdentity } from 'src/client.service';
 
 class Wall {
     public _id: string;
+    public lines = new Array<string>();
     public notes = new Array<string>();
 
     constructor(public name: string) {}
@@ -81,6 +82,20 @@ export class WallStore {
                     reject(error);
                 } else {
                     console.log("Removed note from wall");
+                    resolve();
+                }
+            });
+        });
+    }
+
+    public async addLine(name: string, lineId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.dataStore.update({ name: name }, { $push: { lines: lineId }}, {}, (error, numUpdated, upsert) => {
+                if (error) {
+                    console.error("Failed to add line", error);
+                    reject(error);
+                } else {
+                    console.log("Added line to wall");
                     resolve();
                 }
             });

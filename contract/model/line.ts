@@ -4,6 +4,6 @@ export class Line {
         public _id: string,
         public points: Array<[number, number]>,
         public colour: string,
-        public width: string
+        public width: number
     ) {}
 }
