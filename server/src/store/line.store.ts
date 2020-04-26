@@ -23,6 +23,19 @@ export class LineStore {
         });        
     }
 
+    public async getLine(lineId: string): Promise<Line> {
+        return new Promise<Line>((resolve, reject) => {
+            this.dataStore.findOne({ _id: lineId }, (error, line) => {
+                if (error || !line) {
+                    console.error(`Failed to get line ${lineId}`, error);
+                    reject(error);
+                } else {
+                    resolve(line);
+                }
+            })
+        });        
+    }
+
     public async getLines(lineIds: Array<string>): Promise<Array<Line>> {
         return new Promise<Array<Line>>((resolve, reject) => {
             this.dataStore.find({ _id: { $in: lineIds }}, (error, lines) => {
@@ -47,6 +60,26 @@ export class LineStore {
                     resolve();
                 }
             });
+        });
+    }
+
+    // Cheap hack to replace all but the first points for a line, for straight lines
+    public async replacePoints(lineId: string, points: Array<[number, number]>): Promise<void> {
+        return new Promise<void>(async (resolve, reject) => {
+            const line = await this.getLine(lineId);
+            if (line) {
+                this.dataStore.update({ _id: lineId }, { $set: { points: [line.points[0], ...points] } }, {}, (error, numUpdated, upsert) => {
+                    if (error) {
+                        console.error("Failed to update line", error);
+                        reject(error);
+                    } else {
+                        console.log("Replaced points on line");
+                        resolve();
+                    }
+                });
+            } else {
+                reject("Line doesn't exist!");
+            }
         });
     }
 

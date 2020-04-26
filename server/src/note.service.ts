@@ -122,7 +122,11 @@ export class NoteService {
 
                 case UpdateLine.name:
                     const updateLine = message as UpdateLine;
-                    this.lineStore.addPointsToLine(updateLine.lineId, updateLine.points);
+                    if (updateLine.replace) {
+                        this.lineStore.replacePoints(updateLine.lineId, updateLine.points);
+                    } else {
+                        this.lineStore.addPointsToLine(updateLine.lineId, updateLine.points);
+                    }
                     this.sendToWallUsers(updateLine.wallName, updateLine, wsc.identity.uuid);
                     break;
 

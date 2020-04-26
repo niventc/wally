@@ -78,7 +78,11 @@ export function wallReducer(
                 }
                 const line = state.wall.lines.find(c => c._id === updateLine.lineId);
                 if (line) {
-                    line.points = [...line.points, ...updateLine.points];
+                    if (updateLine.replace) {                        
+                        line.points = [line.points[0], ...updateLine.points];
+                    } else {
+                        line.points = [...line.points, ...updateLine.points];
+                    }
                 }
                 // TODO this is a bit cheeky, should really recreate and replace line, right?
                 return { ...state };

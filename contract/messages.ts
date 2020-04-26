@@ -121,7 +121,8 @@ export class UpdateLine implements Message {
     constructor(
         public wallName: string,
         public lineId: string,
-        public points: Array<[number, number]>
+        public points: Array<[number, number]>,
+        public replace: boolean
     ) {}
 }
 

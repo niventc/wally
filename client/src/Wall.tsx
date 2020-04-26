@@ -19,7 +19,8 @@ interface WallComponentState {
     selectedNoteId: string | undefined;
     selectedLineId: string | undefined;
     inLineMode: boolean;
-    inLineEraseMode: boolean;
+    inPencilMode: boolean;
+    inEraseMode: boolean;
 }
 
 interface StateProps {
@@ -33,7 +34,7 @@ interface ConnectedProps {
     moveNote: (wallId: string, noteId: string, x: number, y: number) => void;
     deleteNote: (wallId: string, noteId: string) => void;
     newLine: (wallId: string, line: Line) => void;
-    updateLine: (wallId: string, lineId: string, points: Array<[number, number]>) => void;
+    updateLine: (wallId: string, lineId: string, points: Array<[number, number]>, replace: boolean) => void;
     deleteLine: (wallId: string, lineId: string) => void;
 }
 
@@ -46,7 +47,7 @@ export default connect<StateProps, ConnectedProps>(
         moveNote: (wallId: string, noteId: string, x: number, y: number) => dispatch(new SendWrapper(new MoveNote(wallId, noteId, x, y))),
         deleteNote: (wallId: string, noteId: string) => dispatch(new SendWrapper(new DeleteNote(wallId, noteId))),
         newLine: (wallId: string, line: Line) => dispatch(new SendWrapper(new NewLine(wallId, line))),
-        updateLine: (wallId: string, lineId: string, points: Array<[number, number]>) => dispatch(new SendWrapper(new UpdateLine(wallId, lineId, points))),
+        updateLine: (wallId: string, lineId: string, points: Array<[number, number]>, replace: boolean) => dispatch(new SendWrapper(new UpdateLine(wallId, lineId, points, replace))),
         deleteLine: (wallId: string, lineId: string) => dispatch(new SendWrapper(new DeleteLine(wallId, lineId)))
     })
 )(
@@ -63,7 +64,8 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         selectedNoteId: undefined,
         selectedLineId: undefined,
         inLineMode: false,
-        inLineEraseMode: false
+        inPencilMode: false,
+        inEraseMode: false
     };
     
     public wallRef = createRef<HTMLDivElement>();
@@ -74,7 +76,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");
             const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
             pointerdown.subscribe(e => {
-                if (this.wallRef.current && this.state.inLineMode) {
+                if (this.wallRef.current && (this.state.inPencilMode || this.state.inLineMode)) {
                     const pointerDown = e as PointerEvent;                
                     const bounding = this.wallRef.current.getBoundingClientRect();
                     const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], "red", 3);
@@ -117,12 +119,8 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         if (e && this.state.selectedNoteId) {
                             this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, e[0] - bounding.left, e[1] - bounding.top);
                         } else if (e && this.state.selectedLineId) {
-                            // this.setState({
-                            //     ...this.state,
-                            //     line: [...this.state.line, [e[0] - bounding.left, e[1] - bounding.top]]
-                            // });
-                            this.props.updateLine(this.props.wall.name, this.state.selectedLineId, [[e[0] - bounding.left, e[1] - bounding.top]]);
-                        }                            
+                            this.props.updateLine(this.props.wall.name, this.state.selectedLineId, [[e[0] - bounding.left, e[1] - bounding.top]], this.state.inLineMode);
+                        }
                     }
                 });
         }
@@ -193,7 +191,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
     }
 
     public deleteLine(lineId: string): void {
-        if (this.state.inLineEraseMode) {
+        if (this.state.inEraseMode) {
             this.props.deleteLine(this.props.wall.name, lineId);
         }
     }
@@ -253,13 +251,18 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 </div>
                 
                 <div style={{ position: 'absolute', top: 0, bottom: 0, left: '-108px', display: 'flex', flexDirection: 'column', height: '750px', margin: 'auto' }}>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle pen mode" active={this.state.inLineMode} onClick={() => this.setState({ ...this.state, inLineMode: !this.state.inLineMode, inLineEraseMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle pencil mode" active={this.state.inPencilMode} onClick={() => this.setState({ ...this.state, inPencilMode: !this.state.inPencilMode, inEraseMode: false, inLineMode: false })}>
                         <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
                             <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
                         </svg>
                     </Button>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle erase pen mode" active={this.state.inLineEraseMode} onClick={() => this.setState({ ...this.state, inLineMode: false, inLineEraseMode: !this.state.inLineEraseMode })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle line mode" active={this.state.inLineMode} onClick={() => this.setState({ ...this.state, inLineMode: !this.state.inLineMode, inEraseMode: false, inPencilMode: false })}>
+                        <svg className="bi bi-dash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(-45deg)'}} d="M3.5 8a.5.5 0 01.5-.5h8a.5.5 0 010 1H4a.5.5 0 01-.5-.5z" clipRule="evenodd"/>
+                        </svg>
+                    </Button>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle erase mode" active={this.state.inEraseMode} onClick={() => this.setState({ ...this.state, inPencilMode: false, inEraseMode: !this.state.inEraseMode, inLineMode: false })}>
                         <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(180deg)'}} d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
                             <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
