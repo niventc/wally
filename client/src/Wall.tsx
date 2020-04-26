@@ -9,6 +9,7 @@ import { connect } from "react-redux";
 import { fromEvent, merge } from "rxjs";
 import { startWith, throttleTime, map, tap } from "rxjs/operators";
 import { SendWrapper } from "./webSocket.middleware";
+import { SketchPicker } from "react-color";
 
 interface WallProps {
     wall: WallState;
@@ -21,6 +22,8 @@ interface WallComponentState {
     inLineMode: boolean;
     inPencilMode: boolean;
     inEraseMode: boolean;
+    showColourPicker: boolean;
+    colour: string;
 }
 
 interface StateProps {
@@ -65,7 +68,9 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         selectedLineId: undefined,
         inLineMode: false,
         inPencilMode: false,
-        inEraseMode: false
+        inEraseMode: false,
+        showColourPicker: false,
+        colour: 'rgb(255,0,0)'
     };
     
     public wallRef = createRef<HTMLDivElement>();
@@ -79,7 +84,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 if (this.wallRef.current && (this.state.inPencilMode || this.state.inLineMode)) {
                     const pointerDown = e as PointerEvent;                
                     const bounding = this.wallRef.current.getBoundingClientRect();
-                    const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], "red", 3);
+                    const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], this.state.colour, 3);
                     this.setState({
                         ...this.state,
                         selectedLineId: line._id
@@ -251,6 +256,17 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 </div>
                 
                 <div style={{ position: 'absolute', top: 0, bottom: 0, left: '-108px', display: 'flex', flexDirection: 'column', height: '750px', margin: 'auto' }}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Pick a colour" active={this.state.showColourPicker} onClick={() => this.setState({...this.state, showColourPicker: true})}>
+                        <div style={{backgroundColor: this.state.colour, width: '16px', height: '16px', borderRadius: '16px', float: 'right', margin: '4px 0'}}>&nbsp;</div>
+                    </Button>
+                    {
+                        this.state.showColourPicker ? 
+                        <div style={{position: 'absolute', left: '150px', zIndex: 200}}>
+                            <div style={{position: 'fixed', top: 0, bottom: 0, left: 0, right: 0}} onClick={() => this.setState({...this.state, showColourPicker: false})}></div>
+                            <SketchPicker color={this.state.colour} onChange={(colour) => this.setState({...this.state, colour: colour.hex })} />
+                        </div> 
+                        : null
+                    }
                     <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle pencil mode" active={this.state.inPencilMode} onClick={() => this.setState({ ...this.state, inPencilMode: !this.state.inPencilMode, inEraseMode: false, inLineMode: false })}>
                         <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
