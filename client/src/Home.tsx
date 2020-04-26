@@ -81,7 +81,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
             
                 <Navbar variant={this.props.user.useNightMode ? 'dark' : 'light'} 
                         bg={this.props.user.useNightMode ? 'dark' : 'light'} 
-                        style={{flexDirection: 'column', position: 'sticky', width: this.props.home.isSideBarOpen ? '15%' : '62px', height: '100%', borderRight: '1px solid rgba(0,0,0,.125)'}}>
+                        style={{flexDirection: 'column', position: 'sticky', zIndex: 100, width: this.props.home.isSideBarOpen ? '15%' : '62px', height: '100%', borderRight: '1px solid rgba(0,0,0,.125)'}}>
                     <Navbar.Brand href="/" className="mr-auto">            
                         <img alt="Wally logo" className="d-inline-block align-top" width="30" height="30" src="logo.png" style={{marginRight: '12px'}} />
                         { this.props.home.isSideBarOpen ? '[wall-y]' : undefined }

@@ -102,6 +102,20 @@ export class WallStore {
         });
     }
 
+    public async removeLine(name: string, lineId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.dataStore.update({ name: name }, { $pull: { lines: lineId } }, {}, (error, numUpdated, upsert) => {
+                if (error) {
+                    console.error("Failed to remove line", error);
+                    reject(error);
+                } else {
+                    console.log("Removed line from wall");
+                    resolve();
+                }
+            });
+        });
+    }
+
     public doesWallHaveClient(name: string, identity: WebSocketIdentity): boolean {
         if (this.wallClientMap.has(name)) {
             if (this.wallClientMap.get(name).find(x => x.uuid === identity.uuid)) {

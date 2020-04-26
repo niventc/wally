@@ -1,4 +1,4 @@
-import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall, SelectNote, DeleteNote, NewLine, UpdateLine } from "wally-contract";
+import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall, SelectNote, DeleteNote, NewLine, UpdateLine, DeleteLine } from "wally-contract";
 
 export interface WallReducerState {
     wall?: WallState | undefined;
@@ -82,6 +82,21 @@ export function wallReducer(
                 }
                 // TODO this is a bit cheeky, should really recreate and replace line, right?
                 return { ...state };
+
+            case DeleteLine.name:
+                const deleteLine = action as DeleteLine;
+                if (state.wall.name !== deleteLine.wallName) {
+                    return state;
+                }
+                return {
+                    ...state,
+                    wall: {
+                        ...state.wall,
+                        lines: [
+                            ...state.wall.lines.filter(n => n._id !== deleteLine.lineId)
+                        ]
+                    }
+                };
 
             case UpdateNoteText.name:
                 const updateNoteText = action as UpdateNoteText;

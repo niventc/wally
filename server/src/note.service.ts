@@ -91,13 +91,13 @@ export class NoteService {
                 case MoveNote.name:
                     const moveNote = message as MoveNote;
                     this.noteStore.updateNote(moveNote.noteId, { x: moveNote.x, y: moveNote.y });
-                    this.sendToWallUsers(moveNote.wallName, moveNote);                  
+                    this.sendToWallUsers(moveNote.wallName, moveNote, wsc.identity.uuid);                  
                     break;
 
                 case UpdateNoteText.name:
                     const updateNoteText = message as UpdateNoteText;
                     this.noteStore.updateNote(updateNoteText.noteId, { text: updateNoteText.text });
-                    this.sendToWallUsers(updateNoteText.wallName, updateNoteText);
+                    this.sendToWallUsers(updateNoteText.wallName, updateNoteText, wsc.identity.uuid);
                     break;
 
                 case SelectNote.name:
@@ -123,25 +123,31 @@ export class NoteService {
                 case UpdateLine.name:
                     const updateLine = message as UpdateLine;
                     this.lineStore.addPointsToLine(updateLine.lineId, updateLine.points);
-                    this.sendToWallUsers(updateLine.wallName, updateLine);
+                    this.sendToWallUsers(updateLine.wallName, updateLine, wsc.identity.uuid);
                     break;
 
                 case DeleteLine.name:
+                    const deleteLine = message as DeleteLine;
+                    this.lineStore.deleteLine(deleteLine.lineId);
+                    this.wallStore.removeLine(deleteLine.wallName, deleteLine.lineId);
+                    this.sendToWallUsers(deleteLine.wallName, deleteLine);
                     break;
 
             }
         });
     }
 
-    private async sendToWallUsers(wallName: string, message: Message): Promise<void> {
+    private async sendToWallUsers(wallName: string, message: Message, skipUuId?: string): Promise<void> {
         const clients = await this.wallStore.getClients(wallName);
-        const instances = this.clientService.getInstances(clients.map(x => x.uuid));
+        const filteredClients = clients.filter(c => c.uuid !== skipUuId);
+        const instances = this.clientService.getInstances(filteredClients.map(x => x.uuid));
         const json = JSON.stringify(message);
-        instances.forEach(i => {
-            if (i) { 
-                i.send(json);
-            }
-        });
+        instances
+            .forEach(i => {
+                if (i) { 
+                    i.send(json);
+                }
+            });
     }
 
 }

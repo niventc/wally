@@ -49,4 +49,18 @@ export class LineStore {
             });
         });
     }
+
+    public async deleteLine(lineId: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.dataStore.remove({ _id: lineId }, {}, (error, numDeleted) => {
+                if (error) {
+                    console.error("Error deleting line", error);
+                    reject(error);
+                } else if (numDeleted) {
+                    console.log(`Deleted ${numDeleted} records`);
+                    resolve();
+                }
+            });
+        });
+    }
 }

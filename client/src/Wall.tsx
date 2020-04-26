@@ -4,10 +4,10 @@ import { Card, Button } from "react-bootstrap";
 
 import './wall.css';
 
-import { NewNote, Message, Note, UpdateNoteText, MoveNote, SelectNote, User, WallState, DeleteNote, NewLine, UpdateLine, DeleteLine, Line } from "wally-contract";
+import { NewNote, Message, Note, UpdateNoteText, MoveNote, SelectNote, User, WallState, DeleteNote, NewLine, UpdateLine, Line, DeleteLine } from "wally-contract";
 import { connect } from "react-redux";
 import { fromEvent, merge } from "rxjs";
-import { startWith, throttleTime, map } from "rxjs/operators";
+import { startWith, throttleTime, map, tap } from "rxjs/operators";
 import { SendWrapper } from "./webSocket.middleware";
 
 interface WallProps {
@@ -18,6 +18,8 @@ interface WallComponentState {
     colours: Array<string>;
     selectedNoteId: string | undefined;
     selectedLineId: string | undefined;
+    inLineMode: boolean;
+    inLineEraseMode: boolean;
 }
 
 interface StateProps {
@@ -32,6 +34,7 @@ interface ConnectedProps {
     deleteNote: (wallId: string, noteId: string) => void;
     newLine: (wallId: string, line: Line) => void;
     updateLine: (wallId: string, lineId: string, points: Array<[number, number]>) => void;
+    deleteLine: (wallId: string, lineId: string) => void;
 }
 
 export default connect<StateProps, ConnectedProps>(
@@ -43,7 +46,8 @@ export default connect<StateProps, ConnectedProps>(
         moveNote: (wallId: string, noteId: string, x: number, y: number) => dispatch(new SendWrapper(new MoveNote(wallId, noteId, x, y))),
         deleteNote: (wallId: string, noteId: string) => dispatch(new SendWrapper(new DeleteNote(wallId, noteId))),
         newLine: (wallId: string, line: Line) => dispatch(new SendWrapper(new NewLine(wallId, line))),
-        updateLine: (wallId: string, lineId: string, points: Array<[number, number]>) => dispatch(new SendWrapper(new UpdateLine(wallId, lineId, points)))
+        updateLine: (wallId: string, lineId: string, points: Array<[number, number]>) => dispatch(new SendWrapper(new UpdateLine(wallId, lineId, points))),
+        deleteLine: (wallId: string, lineId: string) => dispatch(new SendWrapper(new DeleteLine(wallId, lineId)))
     })
 )(
 class Wall extends Component<WallProps & StateProps & ConnectedProps> {
@@ -57,7 +61,9 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             'deeppink'
         ],
         selectedNoteId: undefined,
-        selectedLineId: undefined
+        selectedLineId: undefined,
+        inLineMode: false,
+        inLineEraseMode: false
     };
     
     public wallRef = createRef<HTMLDivElement>();
@@ -68,7 +74,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");
             const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
             pointerdown.subscribe(e => {
-                if (this.wallRef.current) {
+                if (this.wallRef.current && this.state.inLineMode) {
                     const pointerDown = e as PointerEvent;                
                     const bounding = this.wallRef.current.getBoundingClientRect();
                     const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], "red", 3);
@@ -102,7 +108,8 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                                 return [touchmove.touches[0].clientX, touchmove.touches[0].clientY] as [number, number];
                             }
                         }
-                    })
+                    }),
+                    tap(() => this.forceUpdate())
                 )
                 .subscribe(e => {
                     if (this.wallRef.current) {
@@ -185,6 +192,12 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         return svg;
     }
 
+    public deleteLine(lineId: string): void {
+        if (this.state.inLineEraseMode) {
+            this.props.deleteLine(this.props.wall.name, lineId);
+        }
+    }
+
     public render(): JSX.Element {
         return (
             <div ref={this.wallRef} 
@@ -192,7 +205,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                  onTouchEnd={() => this.unselect()} onPointerUp={() => this.unselect()}>
                 {
                     this.props.wall.notes.map(note => 
-                        <Card key={note._id} style={{ width: '200px', boxShadow: this.getBorder(note._id), height: '200px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
+                        <Card key={note._id} style={{ width: '150px', fontSize: '0.9em', boxShadow: this.getBorder(note._id), height: '150px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
                             onPointerDown={(e: React.PointerEvent) => this.startMove(note._id,e)}>
                             <Card.Body>
                                 <textarea value={note.text} 
@@ -219,7 +232,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 <svg style={{width: '100%', height: '100%'}}>
                     {
                         this.props.wall.lines.map(l => 
-                            <path key={l._id} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
+                            <path key={l._id} onClick={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
                         )
                     }
                     {/* {
@@ -239,14 +252,23 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     }
                 </div>
                 
-                <div style={{ position: 'absolute', bottom: '10px', left: '10px', display: 'flex', flexDirection: 'row', width: '1000px', margin: 'auto', right: 0 }}>
-                    <Button>
-                        Pen
+                <div style={{ position: 'absolute', top: 0, bottom: 0, left: '-108px', display: 'flex', flexDirection: 'column', height: '750px', margin: 'auto' }}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle pen mode" active={this.state.inLineMode} onClick={() => this.setState({ ...this.state, inLineMode: !this.state.inLineMode, inLineEraseMode: false })}>
+                        <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
+                        </svg>
+                    </Button>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle erase pen mode" active={this.state.inLineEraseMode} onClick={() => this.setState({ ...this.state, inLineMode: false, inLineEraseMode: !this.state.inLineEraseMode })}>
+                        <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(180deg)'}} d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
+                        </svg>
                     </Button>
                     {
                         this.state.colours.map(c => 
                             <Card key={c} 
-                                  style={{ width: '200px', height: '200px', background: c }} 
+                                  style={{ width: '150px', height: '150px', background: c }} 
                                   onPointerDown={(e: React.PointerEvent) => this.cloneNote(e, c)}>
                             </Card>                
                         )
