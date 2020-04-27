@@ -23,6 +23,7 @@ interface WallComponentState {
     inLineMode: boolean;
     inPencilMode: boolean;
     inEraseMode: boolean;
+    isErasing: boolean;
     showColourPicker: boolean;
     colour: string;
 }
@@ -71,6 +72,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         inLineMode: false,
         inPencilMode: false,
         inEraseMode: false,
+        isErasing: false,
         showColourPicker: false,
         colour: 'rgb(255,0,0)'
     };
@@ -93,13 +95,19 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         selectedLineId: line._id
                     });
                     this.props.newLine(this.props.wall.name, line);
+                } else if (this.state.inEraseMode) {
+                    this.setState({
+                        ...this.state,
+                        isErasing: true
+                    });
                 }
             });
             pointerup.subscribe(e => {
                 this.setState({
                     ...this.state,
                     startingPoint: undefined,
-                    selectedLineId: undefined
+                    selectedLineId: undefined,
+                    isErasing: false
                 });
             });
 
@@ -240,7 +248,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
     }
 
     public deleteLine(lineId: string): void {
-        if (this.state.inEraseMode) {
+        if (this.state.inEraseMode && this.state.isErasing) {
             this.props.deleteLine(this.props.wall.name, lineId);
         }
     }
@@ -279,7 +287,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 <svg style={{width: '100%', height: '100%'}}>
                     {
                         this.props.wall.lines.map(l => 
-                            <path key={l._id} onClick={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
+                            <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
                         )
                     }
                     {/* {
