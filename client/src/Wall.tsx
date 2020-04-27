@@ -17,6 +17,7 @@ interface WallProps {
 
 interface WallComponentState {
     colours: Array<string>;
+    startingPoint: [number, number] | undefined;
     selectedNoteId: string | undefined;
     selectedLineId: string | undefined;
     inLineMode: boolean;
@@ -64,6 +65,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             'dodgerblue',
             'deeppink'
         ],
+        startingPoint: undefined,
         selectedNoteId: undefined,
         selectedLineId: undefined,
         inLineMode: false,
@@ -87,6 +89,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], this.state.colour, 3);
                     this.setState({
                         ...this.state,
+                        startingPoint: [pointerDown.clientX, pointerDown.clientY],
                         selectedLineId: line._id
                     });
                     this.props.newLine(this.props.wall.name, line);
@@ -95,6 +98,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             pointerup.subscribe(e => {
                 this.setState({
                     ...this.state,
+                    startingPoint: undefined,
                     selectedLineId: undefined
                 });
             });
@@ -109,9 +113,49 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         if (e) {
                             if (e.type === "pointermove") {
                                 const mousemove = e as PointerEvent;
+                                if (this.state.inLineMode && this.state.startingPoint && mousemove.shiftKey) {
+                                    if (Math.abs(this.state.startingPoint[0] - mousemove.clientX) < 50) {
+                                        return [this.state.startingPoint[0], mousemove.clientY];
+                                    } else if (Math.abs(this.state.startingPoint[1] - mousemove.clientY) < 50) {
+                                        return [mousemove.clientX, this.state.startingPoint[1]];
+                                    } else {                                        
+                                        let xDiff = mousemove.clientX - this.state.startingPoint[0];
+                                        let yDiff = mousemove.clientY - this.state.startingPoint[1];
+
+                                        let opposite = 0;
+                                        let adjacent = 0;
+                                        if (xDiff > yDiff) {
+                                            adjacent = xDiff;
+                                            opposite = yDiff;
+                                        } else {
+                                            adjacent = yDiff;
+                                            opposite = xDiff;
+                                        }
+                                        let ratio = opposite / adjacent;
+                                        let angle = Math.atan(ratio) * (180/Math.PI);
+
+                                        if (Math.abs(Math.abs(angle) - 45) < 10) {
+                                            let radians = 45 * (Math.PI/180);
+                                            let tan = Math.tan(radians);
+                                            let snapOpposite = tan * adjacent;
+
+                                            if ((xDiff > 0 && yDiff > 0) || (xDiff < 0 && yDiff < 0)) {
+                                                // top left and bottom right
+                                                return [this.state.startingPoint[0] + snapOpposite, mousemove.clientY];
+                                            } else if (xDiff > 0 && yDiff < 0) { 
+                                                // top right
+                                                return [mousemove.clientX, this.state.startingPoint[1] - snapOpposite];
+                                            } else if (xDiff < 0 && yDiff > 0) { 
+                                                // bottom left
+                                                return [this.state.startingPoint[0] - snapOpposite, mousemove.clientY];
+                                            }
+                                        }
+                                    }
+                                }
                                 return [mousemove.clientX, mousemove.clientY] as [number, number];
                             } else if (e.type === "touchmove") {
                                 const touchmove = e as TouchEvent;
+                                
                                 return [touchmove.touches[0].clientX, touchmove.touches[0].clientY] as [number, number];
                             }
                         }
@@ -273,7 +317,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                             <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
                         </svg>
                     </Button>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle line mode" active={this.state.inLineMode} onClick={() => this.setState({ ...this.state, inLineMode: !this.state.inLineMode, inEraseMode: false, inPencilMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle line mode (hold shift to snap)" active={this.state.inLineMode} onClick={() => this.setState({ ...this.state, inLineMode: !this.state.inLineMode, inEraseMode: false, inPencilMode: false })}>
                         <svg className="bi bi-dash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(-45deg)'}} d="M3.5 8a.5.5 0 01.5-.5h8a.5.5 0 010 1H4a.5.5 0 01-.5-.5z" clipRule="evenodd"/>
                         </svg>
