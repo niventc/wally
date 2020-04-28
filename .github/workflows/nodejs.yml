@@ -39,4 +39,4 @@ jobs:
     - name: Tag
       uses: mathieudutour/github-tag-action@v4.1
       with:
-        dry_run: false
+        github_token: ${{ secrets.GITHUB_TOKEN }}
