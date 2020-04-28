@@ -34,4 +34,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: dist
-        dist: dist
+        path: dist
+        
+    - name: Tag
+      uses: mathieudutour/github-tag-action@v4.1
