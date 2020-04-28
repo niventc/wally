@@ -1,4 +1,7 @@
-cd ./client
+cd ./contract
+npm ci
+npm run build
+cd ../client
 npm ci
 npm run build
 cd ../server
