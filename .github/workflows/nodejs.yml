@@ -26,5 +26,7 @@ jobs:
       
     - uses: actions/checkout@v2
       
+    - run: ls -l
+      
     - run: ./package.sh
       working-directory: $GITHUB_WORKSPACE
