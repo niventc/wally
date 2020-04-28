@@ -28,5 +28,4 @@ jobs:
       
     - run: ls -l
       
-    - run: ./package.sh
-      working-directory: $GITHUB_WORKSPACE
+    - run: package.sh
