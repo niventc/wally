@@ -12,8 +12,12 @@ on:
 jobs:
   build:
 
-    runs-on: node:10-alpine3.11
+    runs-on: ubuntu-latest
 
     steps:
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v1.4.2
+      
     - uses: actions/checkout@v2
+      
     - run: package.sh
