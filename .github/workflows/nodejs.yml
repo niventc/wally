@@ -24,8 +24,14 @@ jobs:
       with:
         node-version: ${{ matrix.node_version }}
       
-    - uses: actions/checkout@v2
-      
-    - run: ls -l
-      
-    - run: sh package.sh
+    - name: Checkout
+      uses: actions/checkout@v2
+            
+    - name: Run build
+      run: sh package.sh
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        dist: dist
