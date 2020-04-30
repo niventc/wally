@@ -1,0 +1,80 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Package
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node_version: [10.x]
+
+    steps:
+    - name: Setup Node.js environment
+      uses: actions/setup-node@v1.4.2
+      with:
+        node-version: ${{ matrix.node_version }}
+      
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.PUBLIC_GIT_TOKEN }}
+            
+    - name: Run build
+      run: sh package.sh
+        
+    - name: Tag
+      id: tag
+      uses: mathieudutour/github-tag-action@v4
+      with:
+        github_token: ${{ secrets.PUBLIC_GIT_TOKEN }}
+                
+    - name: Build Docker
+      run: docker build -t niventc/wally:${{ steps.tag.outputs.new_tag }} .
+    
+    - name: Docker login
+      uses: Azure/docker-login@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+      
+    - name: Docker push
+      if: steps.tag.outputs.new_tag != null
+      run: docker push niventc/wally:${{ steps.tag.outputs.new_tag }}
+
+    - name: Create Release
+      if: steps.tag.outputs.new_tag != null
+      id: create_release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.PUBLIC_GIT_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.new_tag }}
+        release_name: Release ${{ steps.tag.outputs.new_tag }}
+        body: ${{ steps.tag.outputs.changelog }}
+        draft: false
+        prerelease: false
+        
+    - name: Zip artifacts
+      run: zip -r dist.zip dist
+
+    - name: Upload Release Asset
+      if: steps.tag.outputs.new_tag != null
+      id: upload-release-asset 
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.PUBLIC_GIT_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }} 
+        asset_path: ./dist.zip
+        asset_name: dist.zip
+        asset_content_type: application/zip
