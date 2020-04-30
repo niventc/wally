@@ -1,6 +1,7 @@
 # wally
 
 ![Package](https://github.com/niventc/wally/workflows/Package/badge.svg)
+![Deploy](https://github.com/niventc/wally/workflows/Deploy/badge.svg)
 
 Collaborative post it and white board app, built with React and Express using Typescript.
 
@@ -20,6 +21,23 @@ node server.js
 ```
 *Will be available by default at http://localhost:5000, configure the port by setting the PORT environment variable*
 *Configure NEDB_ROOT to where you want to persist state*
+
+3. Clone the repo and run the following commands to launch the app locally. Navigate to http://localhost:3000.
+```
+cd contract
+npm run build
+
+cd ../client
+npm run start
+
+# In anther terminal
+cd server
+npm run start
+```
+
+## Contribute
+
+If there are any issues or features you'd like, feel free to raise an issue, or a pull request.
 
 ## License
 This project is licensed under the terms of the [Apache License 2.0](LICENSE)
