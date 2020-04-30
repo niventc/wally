@@ -20,3 +20,6 @@ node server.js
 ```
 *Will be available by default at http://localhost:5000, configure the port by setting the PORT environment variable*
 *Configure NEDB_ROOT to where you want to persist state*
+
+## License
+This project is licensed under the terms of the [Apache License 2.0](LICENSE)
