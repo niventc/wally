@@ -1,6 +1,6 @@
 import React, { Component, Dispatch, createRef, PointerEvent } from "react";
 import { v4 as uuidv4 } from 'uuid';
-import { Card, Button } from "react-bootstrap";
+import { Card, Button, Form } from "react-bootstrap";
 
 import './wall.css';
 
@@ -26,6 +26,7 @@ interface WallComponentState {
     isErasing: boolean;
     showColourPicker: boolean;
     colour: string;
+    lineWidth: number;
 }
 
 interface StateProps {
@@ -74,7 +75,8 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         inEraseMode: false,
         isErasing: false,
         showColourPicker: false,
-        colour: 'rgb(255,0,0)'
+        colour: 'rgb(255,0,0)',
+        lineWidth: 3
     };
     
     public wallRef = createRef<HTMLDivElement>();
@@ -88,7 +90,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 if (this.wallRef.current && (this.state.inPencilMode || this.state.inLineMode)) {
                     const pointerDown = e as PointerEvent;                
                     const bounding = this.wallRef.current.getBoundingClientRect();
-                    const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], this.state.colour, 3);
+                    const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], this.state.colour, this.state.lineWidth);
                     this.setState({
                         ...this.state,
                         startingPoint: [pointerDown.clientX, pointerDown.clientY],
@@ -253,6 +255,13 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         }
     }
 
+    public handleRangeChange(e: React.FormEvent<HTMLInputElement>): void {
+        this.setState({
+            ...this.state,
+            lineWidth: (e.target as HTMLInputElement).value
+        });
+    }
+
     public render(): JSX.Element {
         return (
             <div ref={this.wallRef} 
@@ -290,11 +299,6 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                             <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
                         )
                     }
-                    {/* {
-                        this.state.line ?
-                        <path id="lineAB" d={this.getSvgFromLine(this.state.line)} stroke="red" strokeWidth="3" fill="none" />
-                        : undefined
-                    } */}
                 </svg>
 
                 <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'row' }}>
@@ -308,14 +312,17 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 </div>
                 
                 <div style={{ position: 'absolute', top: 0, bottom: 0, left: '-108px', display: 'flex', flexDirection: 'column', height: '750px', margin: 'auto' }}>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Pick a colour" active={this.state.showColourPicker} onClick={() => this.setState({...this.state, showColourPicker: true})}>
-                        <div style={{backgroundColor: this.state.colour, width: '16px', height: '16px', borderRadius: '16px', float: 'right', margin: '4px 0'}}>&nbsp;</div>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right', height: '38px'}} title="Choose colour and line width" active={this.state.showColourPicker} onClick={() => this.setState({...this.state, showColourPicker: true})}>
+                        <div style={{backgroundColor: this.state.colour, width: this.state.lineWidth + 'px', height: this.state.lineWidth + 'px', borderRadius: this.state.lineWidth + 'px', float: 'right', margin: (16 - this.state.lineWidth) + 'px ' + (12 - this.state.lineWidth) + 'px'}}>&nbsp;</div>
                     </Button>
                     {
                         this.state.showColourPicker ? 
                         <div style={{position: 'absolute', left: '150px', zIndex: 200}}>
                             <div style={{position: 'fixed', top: 0, bottom: 0, left: 0, right: 0}} onClick={() => this.setState({...this.state, showColourPicker: false})}></div>
-                            <SketchPicker color={this.state.colour} onChange={(colour) => this.setState({...this.state, colour: colour.hex })} />
+                            <div style={{position: 'relative', background: this.props.user.useNightMode ? '#282c34' : 'white', border: '1px solid rgba(0,0,0,.125)'}}>
+                                <Form.Control type="range" custom min="2" max="8" defaultValue={this.state.lineWidth} style={{padding: '14px 3px'}} onInput={(e: React.FormEvent<HTMLInputElement>) => this.handleRangeChange(e)}/>
+                                <SketchPicker color={this.state.colour} onChange={(colour) => this.setState({...this.state, colour: colour.hex })} />
+                            </div>
                         </div> 
                         : null
                     }
