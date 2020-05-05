@@ -2,7 +2,7 @@ import { Middleware } from "redux";
 import { webSocket } from "rxjs/webSocket";
 import { v4 as uuidv4 } from 'uuid';
 
-import { Message, UpdateNoteText, UpdateLine, MoveNote } from "wally-contract";
+import { Message, UpdateNoteText, UpdateLine, MoveNote, NewNote } from "wally-contract";
 import { tap, retryWhen, delay } from "rxjs/operators";
 
 export class SendWrapper implements Message {
@@ -66,7 +66,7 @@ export const webSocketMiddleware: () => Middleware = () => {
 
                 // We are optimistic to avoid lag issues, so far just with text.
                 // Messages we dispatch internally here we do not expect to receive from the server.
-                if ([UpdateNoteText.name, MoveNote.name, UpdateLine.name].includes(send.message.type)) {
+                if ([NewNote.name, UpdateNoteText.name, MoveNote.name, UpdateLine.name].includes(send.message.type)) {
                     store.dispatch({...send.message});
                 }
 

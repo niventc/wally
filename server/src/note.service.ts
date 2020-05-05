@@ -40,8 +40,11 @@ export class NoteService {
                         ws.send(JSON.stringify(new WallyError(createError)))
                     } else {
                         const wall = await this.wallStore.createWall(createWall.name);
-                        // TODO add user
-                        ws.send(JSON.stringify(new WallState(wall.name, [], [], [], {})));
+
+                        const clients = await this.wallStore.addClient(createWall.name, wsc.identity); 
+                        const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
+
+                        ws.send(JSON.stringify(new WallState(wall.name, [], [], users, {})));
                     }
                     break;
 
@@ -85,7 +88,7 @@ export class NoteService {
                     const newNote = message as NewNote;
                     this.noteStore.addNote(newNote.note);
                     this.wallStore.addNote(newNote.wallName, newNote.note._id);
-                    this.sendToWallUsers(newNote.wallName, newNote);
+                    this.sendToWallUsers(newNote.wallName, newNote, wsc.identity.uuid);
                     break;
 
                 case MoveNote.name:

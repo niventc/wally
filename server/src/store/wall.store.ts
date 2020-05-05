@@ -41,6 +41,7 @@ export class WallStore {
                     console.error("Failed to create wall", error);
                     reject(error);
                 } else {
+                    console.info("Created wall", wall);
                     resolve(wall);
                 }
             })
