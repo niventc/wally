@@ -268,47 +268,57 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         this.props.deleteNote(this.props.wall.name, noteId);
     }
 
+    public updateAndStop(e: React.PointerEvent, newState: any): void {
+        e.stopPropagation();
+        e.preventDefault();
+        console.log("update and stop");
+        this.setState({...this.state, ...newState});
+    }
+
     public render(): JSX.Element {
         return (
-            <div ref={this.wallRef} 
-                 style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
-                 onTouchEnd={() => this.unselect()} onPointerUp={() => this.unselect()}>
-                {
-                    this.props.wall.notes.map(note => 
-                        <Card key={note._id} 
-                              style={{ width: '150px', fontSize: '0.9em', boxShadow: this.getBorder(note._id), height: '150px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
-                              onPointerDown={(e: React.PointerEvent) => this.startMove(note._id,e)}>
-                            <Card.Body>
-                                <textarea value={note.text} 
-                                          onPointerDown={(e: React.PointerEvent) => this.select(note._id,e)}
-                                          onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.props.updateNoteText(this.props.wall.name, note._id, e.currentTarget.value)} 
-                                          style={{ background: 'transparent', height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
-                                </textarea>
-
-                                { 
-                                    this.isNoteSelectedByUser(note._id) ?
-                                    <span className="hover-icon bottom-right" title="Delete note" style={{padding: '3px'}} onPointerDown={(e) => this.deleteNote(e, note._id)}>
-                                        <svg className="bi bi-trash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
-                                            <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
-                                        </svg>
-                                    </span>
-                                    : undefined 
-                                }
-                            </Card.Body>
-                        </Card>
-                    )
-                }
-              
-                <svg style={{width: '100%', height: '100%'}}>
+            <div style={{width: '100%', height: '100%'}}>
+                <div ref={this.wallRef} 
+                    style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
+                    onTouchEnd={() => this.unselect()} 
+                    onPointerUp={() => this.unselect()}>
                     {
-                        this.props.wall.lines.map(l => 
-                            <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
+                        this.props.wall.notes.map(note => 
+                            <Card key={note._id} 
+                                style={{ width: '150px', fontSize: '0.9em', boxShadow: this.getBorder(note._id), height: '150px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
+                                onPointerDown={(e: React.PointerEvent) => this.startMove(note._id,e)}>
+                                <Card.Body>
+                                    <textarea value={note.text} 
+                                            onPointerDown={(e: React.PointerEvent) => this.select(note._id,e)}
+                                            onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.props.updateNoteText(this.props.wall.name, note._id, e.currentTarget.value)} 
+                                            style={{ background: 'transparent', height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
+                                    </textarea>
+
+                                    { 
+                                        this.isNoteSelectedByUser(note._id) ?
+                                        <span className="hover-icon bottom-right" title="Delete note" style={{padding: '3px'}} onPointerDown={(e) => this.deleteNote(e, note._id)}>
+                                            <svg className="bi bi-trash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
+                                                <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
+                                            </svg>
+                                        </span>
+                                        : undefined 
+                                    }
+                                </Card.Body>
+                            </Card>
                         )
                     }
-                </svg>
+                
+                    <svg style={{width: '100%', height: '100%'}}>
+                        {
+                            this.props.wall.lines.map(l => 
+                                <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
+                            )
+                        }
+                    </svg>
+                </div>
 
-                <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', flexDirection: 'row' }}>
+                <div style={{ position: 'fixed', top: '12px', right: '24px', display: 'flex', flexDirection: 'row' }}>
                     {
                         this.props.wall.users.map(u => 
                             <div key={u.id} style={{ backgroundColor: u.colour, margin: '6px', textAlign: 'center', lineHeight: '32px', fontWeight: 'bold', width: '32px', height: '32px', borderRadius: '32px'}}>
@@ -317,15 +327,15 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         )
                     }
                 </div>
-                
-                <div style={{ position: 'absolute', top: 0, bottom: 0, left: '-108px', display: 'flex', flexDirection: 'column', height: '750px', margin: 'auto' }}>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right', height: '38px'}} title="Choose colour and line width" active={this.state.showColourPicker} onClick={() => this.setState({...this.state, showColourPicker: true})}>
+
+                <div style={{ position: 'fixed', top: 0, bottom: 0, left: '-48px', display: 'flex', flexDirection: 'column', height: '750px', margin: 'auto' }}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right', height: '38px'}} title="Choose colour and line width" active={this.state.showColourPicker} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, {showColourPicker: true})}>
                         <div style={{backgroundColor: this.state.colour, width: this.state.lineWidth + 'px', height: this.state.lineWidth + 'px', borderRadius: this.state.lineWidth + 'px', float: 'right', margin: (16 - this.state.lineWidth) + 'px ' + (12 - this.state.lineWidth) + 'px'}}>&nbsp;</div>
                     </Button>
                     {
                         this.state.showColourPicker ? 
                         <div style={{position: 'absolute', left: '150px', zIndex: 200}}>
-                            <div style={{position: 'fixed', top: 0, bottom: 0, left: 0, right: 0}} onClick={() => this.setState({...this.state, showColourPicker: false})}></div>
+                            <div style={{position: 'fixed', top: 0, bottom: 0, left: 0, right: 0}} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, {showColourPicker: false})}></div>
                             <div style={{position: 'relative', background: this.props.user.useNightMode ? '#282c34' : 'white', border: '1px solid rgba(0,0,0,.125)'}}>
                                 <Form.Control type="range" custom min="2" max="8" defaultValue={this.state.lineWidth} style={{padding: '14px 3px'}} onInput={(e: React.FormEvent<HTMLInputElement>) => this.handleRangeChange(e)}/>
                                 <SketchPicker color={this.state.colour} onChange={(colour) => this.setState({...this.state, colour: colour.hex })} />
@@ -333,18 +343,18 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         </div> 
                         : null
                     }
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle pencil mode" active={this.state.inPencilMode} onClick={() => this.setState({ ...this.state, inPencilMode: !this.state.inPencilMode, inEraseMode: false, inLineMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle pencil mode" active={this.state.inPencilMode} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, {inPencilMode: !this.state.inPencilMode, inEraseMode: false, inLineMode: false })}>
                         <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
                             <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
                         </svg>
                     </Button>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle line mode (hold shift to snap)" active={this.state.inLineMode} onClick={() => this.setState({ ...this.state, inLineMode: !this.state.inLineMode, inEraseMode: false, inPencilMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle line mode (hold shift to snap)" active={this.state.inLineMode} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { inLineMode: !this.state.inLineMode, inEraseMode: false, inPencilMode: false })}>
                         <svg className="bi bi-dash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(-45deg)'}} d="M3.5 8a.5.5 0 01.5-.5h8a.5.5 0 010 1H4a.5.5 0 01-.5-.5z" clipRule="evenodd"/>
                         </svg>
                     </Button>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle erase mode" active={this.state.inEraseMode} onClick={() => this.setState({ ...this.state, inPencilMode: false, inEraseMode: !this.state.inEraseMode, inLineMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle erase mode" active={this.state.inEraseMode} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { inPencilMode: false, inEraseMode: !this.state.inEraseMode, inLineMode: false })}>
                         <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(180deg)'}} d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
                             <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
@@ -353,11 +363,11 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     {
                         this.state.colours.map(c => 
                             <Card key={c} 
-                                  style={{ width: '150px', height: '150px', background: c }} 
-                                  onPointerDown={(e: React.PointerEvent) => this.cloneNote(e, c)}>
+                                style={{ width: '150px', height: '150px', background: c }} 
+                                onPointerDown={(e: React.PointerEvent) => this.cloneNote(e, c)}>
                             </Card>                
                         )
-                    }            
+                    }
                 </div>
             </div>
         );

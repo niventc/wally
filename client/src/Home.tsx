@@ -1,5 +1,5 @@
 import React, { Component, Dispatch } from "react";
-import { Navbar, Nav, FormControl, Card, Button, Alert } from "react-bootstrap";
+import { Navbar, Nav, FormControl, Card, Button, Alert, Modal } from "react-bootstrap";
 import { User as UserModel, CreateWall, JoinWall, Message, WallState, DeleteWall } from "wally-contract";
 import { useParams, Switch, Route, Redirect } from "react-router-dom";
 
@@ -13,6 +13,7 @@ import { componentDidMountChanges, useTraceUpdate } from "./utils";
 
 interface HomeState {
     wallName: string;
+    showAbout: boolean;
 }
 
 interface WallProps {
@@ -58,7 +59,8 @@ export default connect<WallProps, DispatchFromProps>(
 class Home extends Component<DispatchFromProps & WallProps> {
 
     public state: HomeState = {
-        wallName: ''
+        wallName: '',
+        showAbout: false
     };
 
     public componentDidUpdate(prevProps: any, prevState: any): void {
@@ -83,7 +85,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
 
     public render(): JSX.Element {
         return (
-            <div className="App" style={{ display: 'flex', flexDirection: 'row', background: this.props.user.useNightMode ? '#282c34' : 'inherit'}}>
+            <div className="App" style={{ position: 'fixed', display: 'flex', flexDirection: 'row', background: this.props.user.useNightMode ? '#282c34' : 'inherit'}}>
             
                 <Navbar variant={this.props.user.useNightMode ? 'dark' : 'light'} 
                         bg={this.props.user.useNightMode ? 'dark' : 'light'} 
@@ -124,7 +126,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
                     <User isExpanded={this.props.home.isSideBarOpen} />
 
                     <Nav style={{justifyContent: 'space-between', width: this.props.home.isSideBarOpen ? '100%' : undefined}}>
-                        {this.props.home.isSideBarOpen ? <Navbar.Text>About</Navbar.Text> : undefined}
+                        {this.props.home.isSideBarOpen ? <Nav.Link onClick={() => this.setState({...this.state, showAbout: true})}>About</Nav.Link> : undefined}
                         <Button type="button" 
                                 title="Toggle Sidebar"
                                 variant={this.props.user.useNightMode ? 'dark' : 'light'} 
@@ -143,7 +145,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
                     </Nav>
                 </Navbar>
 
-                <div style={{ position: 'relative', width: this.props.home.isSideBarOpen ? '85%' : 'calc(100% - 62px)', height: '100%' }}>
+                <div style={{ overflow: 'auto', position: 'relative', width: this.props.home.isSideBarOpen ? '85%' : 'calc(100% - 62px)', height: '100%' }}>
 
                     {this.props.wall.wall ? <Redirect to={"/" + escape(this.props.wall.wall.name)} /> : undefined}
                     {this.props.wall.error ? <Redirect to={"/"} /> : undefined}
@@ -182,7 +184,23 @@ class Home extends Component<DispatchFromProps & WallProps> {
                             <WallLoader />
                         </Route>
                     </Switch>
-                </div>                
+                </div>  
+
+                <Modal size="sm"
+                       className={this.props.user.useNightMode ? "dark-modal" : "light-modal"}
+                       show={this.state.showAbout}
+                       onHide={() => this.setState({...this.state, showAbout: false})}
+                       aria-labelledby="contained-modal-title-vcenter"
+                       centered>
+                    <Modal.Body style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                        <img alt="Wally logo" className="d-inline-block align-top" width="60" height="60" src="logo.png" style={{marginRight: '12px'}} />               
+                        <Modal.Title id="contained-modal-title-vcenter">
+                            [wall-y]
+                        </Modal.Title>
+
+                        <a href="http://github.com/niventc/wally" rel="noopener noreferrer" target="_blank">http://github.com/niventc/wally</a>
+                    </Modal.Body>
+                </Modal>              
 
             </div>
         )
