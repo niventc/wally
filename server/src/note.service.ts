@@ -1,5 +1,5 @@
 import { WebsocketRequestHandler } from "express-ws";
-import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall, DeleteNote, NewLine, UpdateLine, DeleteLine, Line } from "wally-contract";
+import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall, DeleteNote, NewLine, UpdateLine, DeleteLine, Line, DeleteWall } from "wally-contract";
 
 import { NoteStore } from './store/note.store';
 import { WallStore } from './store/wall.store';
@@ -45,6 +45,19 @@ export class NoteService {
                         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
 
                         ws.send(JSON.stringify(new WallState(wall.name, [], [], users, {})));
+                    }
+                    break;
+
+                case DeleteWall.name:
+                    const deleteWall = message as DeleteWall;
+                    if (await this.wallStore.doesWallExist(deleteWall.name)) {
+                        await this.wallStore.deleteWall(deleteWall.name);
+
+                        const clients = await this.wallStore.getClients(createWall.name); 
+                        clients.forEach(async c => {
+                            await this.wallStore.removeClient(c);
+                            ws.send(JSON.stringify(deleteWall));
+                        });
                     }
                     break;
 

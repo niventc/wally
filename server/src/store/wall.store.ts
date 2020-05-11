@@ -61,6 +61,20 @@ export class WallStore {
         });
     }
 
+    public async deleteWall(name: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            this.dataStore.remove({ name: name }, {}, (error, numDeleted) => {
+                if (error) {
+                    console.error("Error deleting wall", error);
+                    reject(error);
+                } else if (numDeleted) {
+                    console.log(`Deleted ${numDeleted} records`);
+                    resolve();
+                }
+            });
+        });
+    }
+
     public async addNote(name: string, noteId: string): Promise<void> {
         return new Promise((resolve, reject) => {
             this.dataStore.update({ name: name }, { $push: { notes: noteId }}, {}, (error, numUpdated, upsert) => {

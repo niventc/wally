@@ -11,6 +11,13 @@ export class CreateWall implements Message {
     }
 }
 
+export class DeleteWall implements Message {
+    type = "DeleteWall";
+
+    constructor(public name: string) {
+    }
+}
+
 export class JoinWall implements Message {
     type = "JoinWall";
 

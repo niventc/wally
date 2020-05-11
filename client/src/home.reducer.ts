@@ -1,4 +1,4 @@
-import { Message, WallState } from "wally-contract";
+import { Message, WallState, DeleteWall } from "wally-contract";
 
 export interface HomeReducerState {
     recentWalls: Array<string>;
@@ -23,6 +23,10 @@ export function homeReducer(
         case WallState.name:
             const wallState = action as WallState;
             return { ...state, recentWalls: [wallState.name, ...state.recentWalls.filter(w => w !== wallState.name)] };
+
+        case DeleteWall.name:
+            const deleteWall = action as DeleteWall;
+            return { ...state, recentWalls: state.recentWalls.filter(w => w !== deleteWall.name) };
 
         case ToggleSideBar.name:
             return { ...state, isSideBarOpen: !state.isSideBarOpen };
