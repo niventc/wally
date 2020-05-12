@@ -113,6 +113,25 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 });
             });
 
+            let handlerFunction = (e: any) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(e);
+            }
+            let dropArea = document.getElementById('wall');
+            console.log(dropArea);
+            dropArea?.addEventListener('dragenter', handlerFunction, false)
+            dropArea?.addEventListener('dragleave', handlerFunction, false)
+            dropArea?.addEventListener('dragover', handlerFunction, false)
+            dropArea?.addEventListener('drop', handlerFunction, false)
+
+            const onDrop = fromEvent<DragEvent>(this.wallRef.current, "drop");
+            onDrop.subscribe(e => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log(e);
+            });
+
             const mousemove = fromEvent<PointerEvent>(this.wallRef.current, "pointermove").pipe(startWith(undefined));
             const touchmove = fromEvent<TouchEvent>(this.wallRef.current, "touchmove").pipe(startWith(undefined));
       
@@ -279,6 +298,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         return (
             <div style={{width: '100%', height: '100%'}}>
                 <div ref={this.wallRef} 
+                    id="wall"
                     style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
                     onTouchEnd={() => this.unselect()} 
                     onPointerUp={() => this.unselect()}>
