@@ -157,7 +157,7 @@ export class WallStore {
     public async getClients(name: string): Promise<Array<WebSocketIdentity>> {
         return new Promise((resolve, reject) => {
             if (!this.wallClientMap.has(name)) {
-                reject(`Wall '${name}' does not exist`);
+                reject(`Wall '${name}' does not have any clients`);
             }
             resolve(this.wallClientMap.get(name));
         });

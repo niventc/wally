@@ -2,8 +2,9 @@ import { Middleware } from "redux";
 import { webSocket } from "rxjs/webSocket";
 import { v4 as uuidv4 } from 'uuid';
 
-import { Message, UpdateNoteText, UpdateLine, MoveNote, NewNote, DeleteWall } from "wally-contract";
+import { Message, UpdateNoteText, UpdateLine, MoveNote, NewNote, DeleteWall, JoinWall } from "wally-contract";
 import { tap, retryWhen, delay } from "rxjs/operators";
+import { WallReducerState } from "./wall.reducer";
 
 export class SendWrapper implements Message {
     type = "Send";
@@ -50,7 +51,11 @@ export const webSocketMiddleware: () => Middleware = () => {
                                 .pipe(
                                     tap(error => {
                                         console.error("Error talking to backend", error);
-                                        // TODO if in wall, resend JoinWall?
+                                        
+                                        const wallState = store.getState()?.wall as WallReducerState;
+                                        if (wallState.wall?.name) {
+                                            store.dispatch(new SendWrapper(new JoinWall(wallState.wall.name)));
+                                        }
                                     }),
                                     delay(1000)
                                 );
