@@ -157,9 +157,18 @@ export class WallStore {
     public async getClients(name: string): Promise<Array<WebSocketIdentity>> {
         return new Promise((resolve, reject) => {
             if (!this.wallClientMap.has(name)) {
-                reject("Wall does not exist");
+                reject(`Wall '${name}' does not exist`);
             }
             resolve(this.wallClientMap.get(name));
+        });
+    }
+
+    public async getUserWallIds(clientId: string): Promise<Array<string>> {
+        return new Promise((resolve, reject) => {
+            const wallIds = Array.from(this.wallClientMap.entries())
+                .filter(x => x[1].find(c => c.clientId === clientId) !== null)
+                .map(x => x[0]);
+            resolve(wallIds);
         });
     }
 

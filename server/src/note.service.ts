@@ -29,7 +29,11 @@ export class NoteService {
                     const updateUser = message as UpdateUser;
                     this.userStore.updateUser(updateUser.userId, updateUser.user);
                     ws.send(JSON.stringify(message));
-                    // TODO update other users who are the same wall as this user
+
+                    const wallIds = await this.wallStore.getUserWallIds(wsc.identity.clientId);
+                    wallIds.forEach(wallId => {
+                        this.sendToWallUsers(wallId, updateUser, wsc.identity.uuid);
+                    });
                     break;
 
                 case CreateWall.name:
