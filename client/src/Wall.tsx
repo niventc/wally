@@ -11,6 +11,14 @@ import { startWith, throttleTime, map, tap } from "rxjs/operators";
 import { SendWrapper } from "./webSocket.middleware";
 import { SketchPicker } from "react-color";
 
+interface ImageCard {
+    _id: string,
+    name: string,
+    data: string;
+    x: number;
+    y: number;
+}
+
 interface WallProps {
     wall: WallState;
 }
@@ -27,6 +35,7 @@ interface WallComponentState {
     showColourPicker: boolean;
     colour: string;
     lineWidth: number;
+    images: Array<ImageCard>;
 }
 
 interface StateProps {
@@ -76,11 +85,11 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         isErasing: false,
         showColourPicker: false,
         colour: 'rgb(255,0,0)',
-        lineWidth: 3
+        lineWidth: 3,
+        images: []
     };
     
     public wallRef = createRef<HTMLDivElement>();
-
 
     public componentDidMount(): void {
         if (this.wallRef.current) {
@@ -88,7 +97,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
             pointerdown.subscribe(e => {
                 if (this.wallRef.current && (this.state.inPencilMode || this.state.inLineMode)) {
-                    const pointerDown = e as PointerEvent;                
+                    const pointerDown = e as PointerEvent;
                     const bounding = this.wallRef.current.getBoundingClientRect();
                     const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], this.state.colour, this.state.lineWidth);
                     this.setState({
@@ -116,21 +125,57 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             let handlerFunction = (e: any) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log(e);
+            }
+            let dropHandler = (e: DragEvent) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                let dt = e.dataTransfer;
+                let files = dt?.files;
+
+                if (files) {
+                    Array.from(files).forEach(file => {
+                        console.log(file);
+
+                        if (file.type.startsWith("image/")) {
+                            let reader = new FileReader()
+                            reader.readAsDataURL(file)
+                            reader.onloadend = () => {
+                                if (this.wallRef.current) {
+                                    const bounding = this.wallRef.current.getBoundingClientRect();
+
+                                    this.setState({
+                                        ...this.state,
+                                        images: [
+                                            ...this.state.images,
+                                            {
+                                                _id: uuidv4(),
+                                                name: file.name,
+                                                data: reader.result,
+                                                x: e.clientX - bounding.left,
+                                                y: e.clientY - bounding.top
+                                            } as ImageCard
+                                        ]
+                                    });
+                                }
+                            }
+                        }
+                    });
+                }
             }
             let dropArea = document.getElementById('wall');
             console.log(dropArea);
             dropArea?.addEventListener('dragenter', handlerFunction, false)
             dropArea?.addEventListener('dragleave', handlerFunction, false)
             dropArea?.addEventListener('dragover', handlerFunction, false)
-            dropArea?.addEventListener('drop', handlerFunction, false)
+            dropArea?.addEventListener('drop', dropHandler, false)
 
-            const onDrop = fromEvent<DragEvent>(this.wallRef.current, "drop");
-            onDrop.subscribe(e => {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log(e);
-            });
+            // const onDrop = fromEvent<DragEvent>(this.wallRef.current, "drop");
+            // onDrop.subscribe(e => {
+            //     e.preventDefault();
+            //     e.stopPropagation();
+            //     console.log(e);
+            // });
 
             const mousemove = fromEvent<PointerEvent>(this.wallRef.current, "pointermove").pipe(startWith(undefined));
             const touchmove = fromEvent<TouchEvent>(this.wallRef.current, "touchmove").pipe(startWith(undefined));
@@ -355,6 +400,12 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                                 )
                         }
                     </svg>
+
+                    {
+                        this.state.images.map(i => 
+                            <img key={i._id} src={i.data} alt={i.name} style={{position: 'absolute', left: i.x, top: i.y, maxWidth: 150, maxHeight: 150}} />    
+                        )
+                    }
                 </div>
 
                 <div style={{ position: 'fixed', top: '12px', right: '24px', display: 'flex', flexDirection: 'row' }}>
