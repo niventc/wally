@@ -55,6 +55,11 @@ export class NoteService {
                 case DeleteWall.name:
                     const deleteWall = message as DeleteWall;
                     if (await this.wallStore.doesWallExist(deleteWall.name)) {
+                        const wall = await this.wallStore.getWall(deleteWall.name);
+
+                        wall.lines.forEach(l => this.lineStore.deleteLine(l));
+                        wall.notes.forEach(n => this.noteStore.deleteNote(n));
+
                         await this.wallStore.deleteWall(deleteWall.name);
 
                         const clients = await this.wallStore.getClients(createWall.name); 
