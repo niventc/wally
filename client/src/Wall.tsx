@@ -328,7 +328,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     }
                 </div>
 
-                <div style={{ position: 'fixed', top: 0, bottom: 0, left: '-48px', display: 'flex', flexDirection: 'column', height: '750px', margin: 'auto' }}>
+                <div style={{ position: 'fixed', top: 0, bottom: 0, left: '-48px', display: 'flex', flexDirection: 'column', height: '607px', margin: 'auto' }}>
                     <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right', height: '38px'}} title="Choose colour and line width" active={this.state.showColourPicker} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, {showColourPicker: true})}>
                         <div style={{backgroundColor: this.state.colour, width: this.state.lineWidth + 'px', height: this.state.lineWidth + 'px', borderRadius: this.state.lineWidth + 'px', float: 'right', margin: (16 - this.state.lineWidth) + 'px ' + (12 - this.state.lineWidth) + 'px'}}>&nbsp;</div>
                     </Button>
@@ -363,11 +363,15 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     {
                         this.state.colours.map(c => 
                             <Card key={c} 
-                                style={{ width: '150px', height: '150px', background: c }} 
+                                style={{ width: '150px', height: '75px', background: c }} 
                                 onPointerDown={(e: React.PointerEvent) => this.cloneNote(e, c)}>
                             </Card>                
-                        )
+                        ) 
                     }
+                    <Card style={{ marginTop: '5px', width: '150px', height: '75px', background: this.props.user.colour }} 
+                          title="Change your user colour from the sidebar"
+                          onPointerDown={(e: React.PointerEvent) => this.cloneNote(e, this.props.user.colour)}>
+                    </Card>
                 </div>
             </div>
         );
