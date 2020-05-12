@@ -29,7 +29,11 @@ export class NoteService {
                     const updateUser = message as UpdateUser;
                     this.userStore.updateUser(updateUser.userId, updateUser.user);
                     ws.send(JSON.stringify(message));
-                    // TODO update other users who are the same wall as this user
+
+                    const wallIds = await this.wallStore.getUserWallIds(wsc.identity.clientId);
+                    wallIds.forEach(wallId => {
+                        this.sendToWallUsers(wallId, updateUser, wsc.identity.uuid);
+                    });
                     break;
 
                 case CreateWall.name:
@@ -51,6 +55,11 @@ export class NoteService {
                 case DeleteWall.name:
                     const deleteWall = message as DeleteWall;
                     if (await this.wallStore.doesWallExist(deleteWall.name)) {
+                        const wall = await this.wallStore.getWall(deleteWall.name);
+
+                        wall.lines.forEach(l => this.lineStore.deleteLine(l));
+                        wall.notes.forEach(n => this.noteStore.deleteNote(n));
+
                         await this.wallStore.deleteWall(deleteWall.name);
 
                         const clients = await this.wallStore.getClients(createWall.name); 

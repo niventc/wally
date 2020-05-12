@@ -157,18 +157,30 @@ export class WallStore {
     public async getClients(name: string): Promise<Array<WebSocketIdentity>> {
         return new Promise((resolve, reject) => {
             if (!this.wallClientMap.has(name)) {
-                reject("Wall does not exist");
+                reject(`Wall '${name}' does not have any clients`);
             }
             resolve(this.wallClientMap.get(name));
         });
     }
 
-    public async removeClient(identity: WebSocketIdentity): Promise<void> {
+    public async getUserWallIds(clientId: string): Promise<Array<string>> {
+        return new Promise((resolve, reject) => {
+            const wallIds = Array.from(this.wallClientMap.entries())
+                .filter(x => x[1].find(c => c.clientId === clientId) !== null)
+                .map(x => x[0]);
+            resolve(wallIds);
+        });
+    }
+
+    public async removeClient(identity: WebSocketIdentity): Promise<[string, Array<WebSocketIdentity>]> {
         return new Promise((resolve, reject) => {
             for (let [wall, clients] of this.wallClientMap) {
-                this.wallClientMap.set(wall, clients.filter(c => c.uuid !== identity.uuid));
+                if (clients.find(x => x.uuid === identity.uuid)) {
+                    this.wallClientMap.set(wall, clients.filter(c => c.uuid !== identity.uuid));
+                    resolve([wall, this.wallClientMap.get(wall)]);
+                }
             }
             resolve();
-        });        
+        });
     }
 }

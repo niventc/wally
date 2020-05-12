@@ -8,7 +8,7 @@ import { WallStore } from './store/wall.store';
 import { NoteStore } from './store/note.store';
 import { WebSocketClient, ClientService, WebSocketIdentity } from './client.service';
 import { UserStore } from './store/user.store';
-import { UserConnected } from 'wally-contract';
+import { UserConnected, UserLeftWall } from 'wally-contract';
 import { LineStore } from './store/line.store';
 
 class Server {
@@ -48,10 +48,19 @@ class Server {
             ws.send(JSON.stringify(new UserConnected(user)));
             console.log("Client connected", wsc.identity);
 
-            ws.onclose = () => {
+            ws.onclose = async () => {
                 this.clientService.removeClient(wsc);
-                this.wallStore.removeClient(wsc.identity);
-                // TODO send client left wall... both on page close/refresh and on join new wall
+                
+                // Send client left wall... both on page close/refresh and on join new wall
+                const wall = await this.wallStore.removeClient(wsc.identity);
+                if (wall) {
+                    const instances = this.clientService.getInstances(wall[1].map(x => x.uuid));
+                    const user = await this.userStore.getOrCreateUser(wsc.identity.clientId);
+                    const json = JSON.stringify(new UserLeftWall(wall[0], user.id));
+                    instances.forEach(i => {
+                        i.send(json);
+                    });
+                }
                 console.log(`Client disconnected`, wsc.identity);
             };
         });

@@ -294,7 +294,24 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         this.setState({...this.state, ...newState});
     }
 
+    public getSvgSize(): [number, number] {
+        let maxX = 0;
+        let maxY = 0;
+        this.props.wall.lines.forEach(l => {
+            l.points.forEach(p => {
+                if (p[0] > maxX) {
+                    maxX = p[0];
+                }
+                if (p[1] > maxY) {
+                    maxY = p[1];
+                }
+            });
+        });
+        return [maxX, maxY];
+    }
+
     public render(): JSX.Element {
+        let svgSize = this.getSvgSize();
         return (
             <div style={{width: '100%', height: '100%'}}>
                 <div ref={this.wallRef} 
@@ -329,11 +346,13 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         )
                     }
                 
-                    <svg style={{width: '100%', height: '100%'}}>
+                    <svg style={{width: svgSize[0] + 'px', height: svgSize[1] + 'px'}}>
                         {
-                            this.props.wall.lines.map(l => 
-                                <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
-                            )
+                            this.props.wall.lines
+                                .filter(l => l && l.points && l.points.length > 1)
+                                .map(l => 
+                                    <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
+                                )
                         }
                     </svg>
                 </div>
@@ -348,7 +367,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     }
                 </div>
 
-                <div style={{ position: 'fixed', top: 0, bottom: 0, left: '-48px', display: 'flex', flexDirection: 'column', height: '750px', margin: 'auto' }}>
+                <div style={{ position: 'fixed', top: 0, bottom: 0, left: '-48px', display: 'flex', flexDirection: 'column', height: '607px', margin: 'auto' }}>
                     <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right', height: '38px'}} title="Choose colour and line width" active={this.state.showColourPicker} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, {showColourPicker: true})}>
                         <div style={{backgroundColor: this.state.colour, width: this.state.lineWidth + 'px', height: this.state.lineWidth + 'px', borderRadius: this.state.lineWidth + 'px', float: 'right', margin: (16 - this.state.lineWidth) + 'px ' + (12 - this.state.lineWidth) + 'px'}}>&nbsp;</div>
                     </Button>
@@ -383,11 +402,15 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     {
                         this.state.colours.map(c => 
                             <Card key={c} 
-                                style={{ width: '150px', height: '150px', background: c }} 
+                                style={{ width: '150px', height: '75px', background: c }} 
                                 onPointerDown={(e: React.PointerEvent) => this.cloneNote(e, c)}>
                             </Card>                
-                        )
+                        ) 
                     }
+                    <Card style={{ marginTop: '5px', width: '150px', height: '75px', background: this.props.user.colour }} 
+                          title="Change your user colour from the sidebar"
+                          onPointerDown={(e: React.PointerEvent) => this.cloneNote(e, this.props.user.colour)}>
+                    </Card>
                 </div>
             </div>
         );
