@@ -1,4 +1,4 @@
-import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall, SelectNote, DeleteNote, NewLine, UpdateLine, DeleteLine, DeleteWall } from "wally-contract";
+import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall, SelectNote, DeleteNote, NewLine, UpdateLine, DeleteLine, DeleteWall, UpdateUser } from "wally-contract";
 
 export interface WallReducerState {
     wall?: WallState | undefined;
@@ -146,6 +146,21 @@ export function wallReducer(
                         selectedNotes: selectedNotes
                     }
                 };
+
+            case UpdateUser.name:
+                const updateUser = action as UpdateUser;
+                const existingUser = state.wall.users.find(x => x.id === updateUser.userId);
+                if (existingUser) {
+                    return {
+                        ...state,
+                        wall: {
+                            ...state.wall,
+                            users: [...state.wall.users.filter(x => x.id !== updateUser.userId), {...existingUser, ...updateUser.user}]
+                        }
+                    };
+                }
+                return state;
+                
         }
     }
 
