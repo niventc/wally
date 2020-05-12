@@ -172,12 +172,15 @@ export class WallStore {
         });
     }
 
-    public async removeClient(identity: WebSocketIdentity): Promise<void> {
+    public async removeClient(identity: WebSocketIdentity): Promise<[string, Array<WebSocketIdentity>]> {
         return new Promise((resolve, reject) => {
             for (let [wall, clients] of this.wallClientMap) {
-                this.wallClientMap.set(wall, clients.filter(c => c.uuid !== identity.uuid));
+                if (clients.find(x => x.uuid === identity.uuid)) {
+                    this.wallClientMap.set(wall, clients.filter(c => c.uuid !== identity.uuid));
+                    resolve([wall, this.wallClientMap.get(wall)]);
+                }
             }
             resolve();
-        });        
+        });
     }
 }
