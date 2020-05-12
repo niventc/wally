@@ -328,9 +328,11 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 
                     <svg style={{width: svgSize[0] + 'px', height: svgSize[1] + 'px'}}>
                         {
-                            this.props.wall.lines.map(l => 
-                                <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
-                            )
+                            this.props.wall.lines
+                                .filter(l => l && l.points && l.points.length > 1)
+                                .map(l => 
+                                    <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
+                                )
                         }
                     </svg>
                 </div>

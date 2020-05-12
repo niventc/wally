@@ -50,10 +50,10 @@ export const webSocketMiddleware: () => Middleware = () => {
                                 .pipe(
                                     tap(error => {
                                         console.error("Error talking to backend", error);
-                                        // this.connected$.next(false)
+                                        // TODO if in wall, resend JoinWall?
                                     }),
                                     delay(1000)
-                                )
+                                );
                         })
                     )
                     .subscribe(m => store.dispatch(m));
