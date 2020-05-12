@@ -275,7 +275,24 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         this.setState({...this.state, ...newState});
     }
 
+    public getSvgSize(): [number, number] {
+        let maxX = 0;
+        let maxY = 0;
+        this.props.wall.lines.forEach(l => {
+            l.points.forEach(p => {
+                if (p[0] > maxX) {
+                    maxX = p[0];
+                }
+                if (p[1] > maxY) {
+                    maxY = p[1];
+                }
+            });
+        });
+        return [maxX, maxY];
+    }
+
     public render(): JSX.Element {
+        let svgSize = this.getSvgSize();
         return (
             <div style={{width: '100%', height: '100%'}}>
                 <div ref={this.wallRef} 
@@ -309,7 +326,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         )
                     }
                 
-                    <svg style={{width: '100%', height: '100%'}}>
+                    <svg style={{width: svgSize[0] + 'px', height: svgSize[1] + 'px'}}>
                         {
                             this.props.wall.lines.map(l => 
                                 <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
