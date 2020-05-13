@@ -62,7 +62,7 @@ export class NoteService {
 
                         await this.wallStore.deleteWall(deleteWall.name);
 
-                        const clients = await this.wallStore.getClients(createWall.name); 
+                        const clients = await this.wallStore.getClients(deleteWall.name); 
                         clients.forEach(async c => {
                             await this.wallStore.removeClient(c);
                             ws.send(JSON.stringify(deleteWall));
