@@ -340,7 +340,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 <div style={{ zIndex: 90, position: 'fixed', top: '12px', right: '24px', display: 'flex', flexDirection: 'row' }}>
                     {
                         this.props.wall.users.map(u => 
-                            <div key={u.id} style={{ backgroundColor: u.colour, margin: '6px', textAlign: 'center', lineHeight: '32px', fontWeight: 'bold', width: '32px', height: '32px', borderRadius: '32px'}}>
+                            <div key={u.id} title={u.name} style={{ backgroundColor: u.colour, margin: '6px', textAlign: 'center', lineHeight: '32px', fontWeight: 'bold', width: '32px', height: '32px', borderRadius: '32px'}}>
                                 {u.name?.substr(0, 1).toUpperCase()}
                             </div>
                         )
