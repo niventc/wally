@@ -337,7 +337,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     </svg>
                 </div>
 
-                <div style={{ position: 'fixed', top: '12px', right: '24px', display: 'flex', flexDirection: 'row' }}>
+                <div style={{ zIndex: 90, position: 'fixed', top: '12px', right: '24px', display: 'flex', flexDirection: 'row' }}>
                     {
                         this.props.wall.users.map(u => 
                             <div key={u.id} style={{ backgroundColor: u.colour, margin: '6px', textAlign: 'center', lineHeight: '32px', fontWeight: 'bold', width: '32px', height: '32px', borderRadius: '32px'}}>
@@ -347,7 +347,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     }
                 </div>
 
-                <div style={{ position: 'fixed', top: 0, bottom: 0, left: '-48px', display: 'flex', flexDirection: 'column', height: '607px', margin: 'auto' }}>
+                <div style={{ zIndex: 90, position: 'fixed', top: 0, bottom: 0, left: '-48px', display: 'flex', flexDirection: 'column', height: '607px', margin: 'auto' }}>
                     <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right', height: '38px'}} title="Choose colour and line width" active={this.state.showColourPicker} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, {showColourPicker: true})}>
                         <div style={{backgroundColor: this.state.colour, width: this.state.lineWidth + 'px', height: this.state.lineWidth + 'px', borderRadius: this.state.lineWidth + 'px', float: 'right', margin: (16 - this.state.lineWidth) + 'px ' + (12 - this.state.lineWidth) + 'px'}}>&nbsp;</div>
                     </Button>
