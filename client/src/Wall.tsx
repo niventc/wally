@@ -291,10 +291,43 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         return [maxX, maxY];
     }
 
+    public updateNoteText(e: React.FormEvent<HTMLTextAreaElement>, noteId: string) {
+        const newValue = e.currentTarget.value;
+        if (newValue.length <= 280) {
+            this.props.updateNoteText(this.props.wall.name, noteId, e.currentTarget.value);
+        } else {
+            console.log("too long!!");
+        }
+    }
+
+    public getFontSize(text: string): number {
+        const testArea = document.getElementById("testarea") as HTMLTextAreaElement;
+        const defaultFontSize = 15;
+
+        if (!testArea)  {
+            return defaultFontSize;
+        }
+
+        let newFontSize = defaultFontSize;
+
+        // Set to default
+        testArea.value = text;
+        testArea.style.fontSize = defaultFontSize + "px";
+        while (testArea.scrollHeight > testArea.clientHeight) {
+            newFontSize--;
+            testArea.style.fontSize = newFontSize + "px";
+        }
+
+        return newFontSize;
+    }
+
     public render(): JSX.Element {
         let svgSize = this.getSvgSize();
         return (
             <div style={{width: '100%', height: '100%'}}>
+
+                <textarea id="testarea" style={{ visibility: 'hidden', overflow: 'hidden', height: '124px', width: '124px', border: 'none', outline: 'none', resize: 'none' }}></textarea>
+
                 <div ref={this.wallRef} 
                     style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
                     onTouchEnd={() => this.unselect()} 
@@ -302,19 +335,25 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     {
                         this.props.wall.notes.map(note => 
                             <Card key={note._id} 
-                                style={{ width: '150px', fontSize: '0.9em', boxShadow: this.getBorder(note._id), height: '150px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
+                                style={{ width: '150px', boxShadow: this.getBorder(note._id), height: '150px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
                                 onPointerDown={(e: React.PointerEvent) => this.startMove(note._id,e)}>
-                                <Card.Body>
+                                <Card.Body style={{ padding: '12px' }}>
                                     <textarea value={note.text} 
                                             onPointerDown={(e: React.PointerEvent) => this.select(note._id,e)}
-                                            onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.props.updateNoteText(this.props.wall.name, note._id, e.currentTarget.value)} 
-                                            style={{ background: 'transparent', height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
+                                            onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.updateNoteText(e, note._id)} 
+                                            style={{ overflow: 'hidden', background: 'transparent', fontSize: this.getFontSize(note.text), height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
                                     </textarea>
 
+                                    {
+                                        note.text.length > 230 ?
+                                        <span style={{fontSize: 8, color: 'rgba(0,0,0,0.5)', bottom: 3, left: 3, position: 'absolute'}}>{note.text.length}/280</span>
+                                        : undefined
+                                    }
+                                    
                                     { 
                                         this.isNoteSelectedByUser(note._id) ?
-                                        <span className="hover-icon bottom-right" title="Delete note" style={{padding: '3px'}} onPointerDown={(e) => this.deleteNote(e, note._id)}>
-                                            <svg className="bi bi-trash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <span className="hover-icon bottom-right" title="Delete note" onPointerDown={(e) => this.deleteNote(e, note._id)}>
+                                            <svg className="bi bi-trash" width="1em" height="0.8em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                                 <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
                                                 <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
                                             </svg>
