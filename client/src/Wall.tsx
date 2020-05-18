@@ -121,7 +121,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         if (e) {
                             if (e.type === "pointermove") {
                                 const mousemove = e as PointerEvent;
-                                if (this.state.selectedMode === "line" && this.state.startingPoint && mousemove.shiftKey) {
+                                if ((this.state.selectedMode === "line" || this.state.selectedMode === "rectangle") && this.state.startingPoint && mousemove.shiftKey) {
                                     if (Math.abs(this.state.startingPoint[0] - mousemove.clientX) < 50) {
                                         return [this.state.startingPoint[0], mousemove.clientY];
                                     } else if (Math.abs(this.state.startingPoint[1] - mousemove.clientY) < 50) {
@@ -179,25 +179,24 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                             if (this.state.selectedMode === "rectangle" && this.state.startingPoint) {
                                 const x = e[0] - bounding.left;
                                 const y = e[1] - bounding.top;
-                                // top right
-                                const tr = [x, this.state.startingPoint[1] - bounding.top] as [number, number];
-                                // bottom right
-                                const br = [x, y] as [number, number];
-                                // bottom left
-                                const bl = [this.state.startingPoint[0] - bounding.left, y] as [number, number];
-                                // const top left
-                                const tl = [this.state.startingPoint[0] - bounding.left, this.state.startingPoint[1] - bounding.top] as [number, number];
+                                const startX = this.state.startingPoint[0] - bounding.left;
+                                const startY = this.state.startingPoint[1] - bounding.top;
+
+                                const topRight = [x, startY] as [number, number];
+                                const bottomRight = [x, y] as [number, number];
+                                const bottomLeft = [startX, y] as [number, number];
+                                const topLeft = [startX, startY] as [number, number];
                                 this.props.updateLine(
                                     this.props.wall.name, 
                                     this.state.selectedLineId, 
                                     [
-                                        tr, br, bl, tl
+                                        topRight, 
+                                        bottomRight, 
+                                        bottomLeft, 
+                                        topLeft
                                     ], 
                                     true
                                 );
-                                console.log([
-                                    tl, tr, br, bl, tl
-                                ]);
                             } else {
                                 this.props.updateLine(
                                     this.props.wall.name, 
@@ -439,7 +438,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                             <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(-45deg)'}} d="M3.5 8a.5.5 0 01.5-.5h8a.5.5 0 010 1H4a.5.5 0 01-.5-.5z" clipRule="evenodd"/>
                         </svg>
                     </Button>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle rectangle mode" active={this.state.selectedMode === "rectangle"} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { selectedMode: this.state.selectedMode === "rectangle" ? undefined : "rectangle", inEraseMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle rectangle mode (hold shift to snap)" active={this.state.selectedMode === "rectangle"} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { selectedMode: this.state.selectedMode === "rectangle" ? undefined : "rectangle", inEraseMode: false })}>
                         <svg className="bi bi-square" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" d="M14 1H2a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V2a1 1 0 00-1-1zM2 0a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V2a2 2 0 00-2-2H2z" clipRule="evenodd"/>
                         </svg>
