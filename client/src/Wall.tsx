@@ -20,9 +20,8 @@ interface WallComponentState {
     startingPoint: [number, number] | undefined;
     selectedNoteId: string | undefined;
     selectedLineId: string | undefined;
-    inLineMode: boolean;
-    inPencilMode: boolean;
     inEraseMode: boolean;
+    selectedMode: "pen" | "line" | "rectangle" | undefined;
     isErasing: boolean;
     showColourPicker: boolean;
     colour: string;
@@ -70,9 +69,8 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         startingPoint: undefined,
         selectedNoteId: undefined,
         selectedLineId: undefined,
-        inLineMode: false,
-        inPencilMode: false,
         inEraseMode: false,
+        selectedMode: undefined,
         isErasing: false,
         showColourPicker: false,
         colour: 'rgb(255,0,0)',
@@ -87,7 +85,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");
             const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
             pointerdown.subscribe(e => {
-                if (this.wallRef.current && (this.state.inPencilMode || this.state.inLineMode)) {
+                if (this.wallRef.current && (this.state.selectedMode)) {
                     const pointerDown = e as PointerEvent;                
                     const bounding = this.wallRef.current.getBoundingClientRect();
                     const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], this.state.colour, this.state.lineWidth);
@@ -123,7 +121,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         if (e) {
                             if (e.type === "pointermove") {
                                 const mousemove = e as PointerEvent;
-                                if (this.state.inLineMode && this.state.startingPoint && mousemove.shiftKey) {
+                                if (this.state.selectedMode === "line" && this.state.startingPoint && mousemove.shiftKey) {
                                     if (Math.abs(this.state.startingPoint[0] - mousemove.clientX) < 50) {
                                         return [this.state.startingPoint[0], mousemove.clientY];
                                     } else if (Math.abs(this.state.startingPoint[1] - mousemove.clientY) < 50) {
@@ -178,7 +176,36 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         if (e && this.state.selectedNoteId) {
                             this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, e[0] - bounding.left, e[1] - bounding.top);
                         } else if (e && this.state.selectedLineId) {
-                            this.props.updateLine(this.props.wall.name, this.state.selectedLineId, [[e[0] - bounding.left, e[1] - bounding.top]], this.state.inLineMode);
+                            if (this.state.selectedMode === "rectangle" && this.state.startingPoint) {
+                                const x = e[0] - bounding.left;
+                                const y = e[1] - bounding.top;
+                                // top right
+                                const tr = [x, this.state.startingPoint[1] - bounding.top] as [number, number];
+                                // bottom right
+                                const br = [x, y] as [number, number];
+                                // bottom left
+                                const bl = [this.state.startingPoint[0] - bounding.left, y] as [number, number];
+                                // const top left
+                                const tl = [this.state.startingPoint[0] - bounding.left, this.state.startingPoint[1] - bounding.top] as [number, number];
+                                this.props.updateLine(
+                                    this.props.wall.name, 
+                                    this.state.selectedLineId, 
+                                    [
+                                        tr, br, bl, tl
+                                    ], 
+                                    true
+                                );
+                                console.log([
+                                    tl, tr, br, bl, tl
+                                ]);
+                            } else {
+                                this.props.updateLine(
+                                    this.props.wall.name, 
+                                    this.state.selectedLineId, 
+                                    [[e[0] - bounding.left, e[1] - bounding.top]], 
+                                    this.state.selectedMode === "line"
+                                );
+                            }
                         }
                     }
                 });
@@ -326,7 +353,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         return (
             <div style={{width: '100%', height: '100%'}}>
 
-                <textarea id="testarea" style={{ visibility: 'hidden', overflow: 'hidden', height: '124px', width: '124px', border: 'none', outline: 'none', resize: 'none' }}></textarea>
+                <textarea id="testarea" style={{ position: 'fixed', left: -150, visibility: 'hidden', overflow: 'hidden', height: '124px', width: '124px', border: 'none', outline: 'none', resize: 'none' }}></textarea>
 
                 <div ref={this.wallRef} 
                     style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
@@ -401,18 +428,23 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         </div> 
                         : null
                     }
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle pencil mode" active={this.state.inPencilMode} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, {inPencilMode: !this.state.inPencilMode, inEraseMode: false, inLineMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle pencil mode" active={this.state.selectedMode === "pen"} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, {selectedMode: this.state.selectedMode === "pen" ? undefined : "pen", inEraseMode: false })}>
                         <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
                             <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
                         </svg>
                     </Button>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle line mode (hold shift to snap)" active={this.state.inLineMode} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { inLineMode: !this.state.inLineMode, inEraseMode: false, inPencilMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle line mode (hold shift to snap)" active={this.state.selectedMode === "line"} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { selectedMode: this.state.selectedMode === "line" ? undefined : "line", inEraseMode: false })}>
                         <svg className="bi bi-dash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(-45deg)'}} d="M3.5 8a.5.5 0 01.5-.5h8a.5.5 0 010 1H4a.5.5 0 01-.5-.5z" clipRule="evenodd"/>
                         </svg>
                     </Button>
-                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle erase mode" active={this.state.inEraseMode} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { inPencilMode: false, inEraseMode: !this.state.inEraseMode, inLineMode: false })}>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle rectangle mode" active={this.state.selectedMode === "rectangle"} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { selectedMode: this.state.selectedMode === "rectangle" ? undefined : "rectangle", inEraseMode: false })}>
+                        <svg className="bi bi-square" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" d="M14 1H2a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V2a1 1 0 00-1-1zM2 0a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V2a2 2 0 00-2-2H2z" clipRule="evenodd"/>
+                        </svg>
+                    </Button>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{textAlign: 'right'}} title="Toggle erase mode" active={this.state.inEraseMode} onPointerDown={(e: React.PointerEvent) => this.updateAndStop(e, { inEraseMode: !this.state.inEraseMode, selectedMode: undefined })}>
                         <svg className="bi bi-pencil" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fillRule="evenodd" style={{transformBox: 'fill-box', transformOrigin: 'center', transform: 'rotate(180deg)'}} d="M11.293 1.293a1 1 0 011.414 0l2 2a1 1 0 010 1.414l-9 9a1 1 0 01-.39.242l-3 1a1 1 0 01-1.266-1.265l1-3a1 1 0 01.242-.391l9-9zM12 2l2 2-9 9-3 1 1-3 9-9z" clipRule="evenodd"/>
                             <path fillRule="evenodd" d="M12.146 6.354l-2.5-2.5.708-.708 2.5 2.5-.707.708zM3 10v.5a.5.5 0 00.5.5H4v.5a.5.5 0 00.5.5H5v.5a.5.5 0 00.5.5H6v-1.5a.5.5 0 00-.5-.5H5v-.5a.5.5 0 00-.5-.5H3z" clipRule="evenodd"/>
