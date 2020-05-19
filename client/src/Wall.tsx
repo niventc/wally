@@ -10,6 +10,7 @@ import { fromEvent, merge } from "rxjs";
 import { startWith, throttleTime, map, tap } from "rxjs/operators";
 import { SendWrapper } from "./webSocket.middleware";
 import { SketchPicker } from "react-color";
+import { UserCoin } from "./UserCoin";
 
 interface WallProps {
     wall: WallState;
@@ -403,13 +404,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 </div>
 
                 <div style={{ zIndex: 90, position: 'fixed', top: '12px', right: '24px', display: 'flex', flexDirection: 'row' }}>
-                    {
-                        this.props.wall.users.map(u => 
-                            <div key={u.id} title={u.name} style={{ backgroundColor: u.colour, margin: '6px', textAlign: 'center', lineHeight: '32px', fontWeight: 'bold', width: '32px', height: '32px', borderRadius: '32px'}}>
-                                {u.name?.substr(0, 1).toUpperCase()}
-                            </div>
-                        )
-                    }
+                    {this.props.wall.users.map(u => <UserCoin key={u.id} user={u} />)}
                 </div>
 
                 <div style={{ zIndex: 90, position: 'fixed', top: 0, bottom: 0, left: '-48px', display: 'flex', flexDirection: 'column', height: '607px', margin: 'auto' }}>
