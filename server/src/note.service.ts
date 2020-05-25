@@ -58,7 +58,7 @@ export class NoteService {
                         const wall = await this.wallStore.getWall(deleteWall.name);
 
                         wall.lines.forEach(l => this.lineStore.deleteLine(l));
-                        wall.notes.forEach(n => this.noteStore.deleteNote(n));
+                        wall.notes.forEach(n => this.noteStore.deleteItem(n));
 
                         await this.wallStore.deleteWall(deleteWall.name);
 
@@ -86,7 +86,7 @@ export class NoteService {
                         const clients = await this.wallStore.addClient(joinWall.name, wsc.identity);       
 
                         const lines = await this.lineStore.getLines(joinedWall.lines);
-                        const notes = await this.noteStore.getNotes(joinedWall.notes);
+                        const notes = await this.noteStore.getItems(joinedWall.notes);
                         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
                         const selected = {};
                         users.forEach(u => {
@@ -108,20 +108,20 @@ export class NoteService {
 
                 case NewNote.name:
                     const newNote = message as NewNote;
-                    this.noteStore.addNote(newNote.note);
+                    this.noteStore.addItem(newNote.note);
                     this.wallStore.addNote(newNote.wallName, newNote.note._id);
                     this.sendToWallUsers(newNote.wallName, newNote, wsc.identity.uuid);
                     break;
 
                 case MoveNote.name:
                     const moveNote = message as MoveNote;
-                    this.noteStore.updateNote(moveNote.noteId, { x: moveNote.x, y: moveNote.y });
+                    this.noteStore.updateItem(moveNote.noteId, { x: moveNote.x, y: moveNote.y });
                     this.sendToWallUsers(moveNote.wallName, moveNote, wsc.identity.uuid);                  
                     break;
 
                 case UpdateNoteText.name:
                     const updateNoteText = message as UpdateNoteText;
-                    this.noteStore.updateNote(updateNoteText.noteId, { text: updateNoteText.text });
+                    this.noteStore.updateItem(updateNoteText.noteId, { text: updateNoteText.text });
                     this.sendToWallUsers(updateNoteText.wallName, updateNoteText, wsc.identity.uuid);
                     break;
 
@@ -134,7 +134,7 @@ export class NoteService {
                 case DeleteNote.name:
                     const deleteNote = message as DeleteNote;
                     this.wallStore.removeNote(deleteNote.wallName, deleteNote.noteId);
-                    this.noteStore.deleteNote(deleteNote.noteId);
+                    this.noteStore.deleteItem(deleteNote.noteId);
                     this.sendToWallUsers(deleteNote.wallName, deleteNote);
                     break;
 

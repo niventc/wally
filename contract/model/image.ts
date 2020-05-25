@@ -1,12 +1,13 @@
 import { Id } from 'model';
 
-export class Note implements Id {    
+export class Image implements Id {    
     constructor(
         public _id: string,
         public zIndex: number,
         public x: number,
         public y: number,
-        public colour: string,
-        public text: string
+        public width: number,
+        public height: number,
+        public value: string
     ) {}
 }
