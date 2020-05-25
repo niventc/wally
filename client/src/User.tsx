@@ -5,6 +5,7 @@ import { SketchPicker } from "react-color";
 
 import { User, UpdateUser, Message } from "wally-contract";
 import { SendWrapper } from "./webSocket.middleware";
+import { UserCoin } from "./UserCoin";
 
 interface UserProps {
     isExpanded: boolean;
@@ -54,10 +55,7 @@ class User extends Component<UserProps & StateProps & DispatchProps> {
                 {
                     <Form inline style={{ marginBottom: '12px' }}>
                         <div style={{margin: 'auto', position: 'relative'}}>
-                            <div style={{background: this.props.user.colour, width: '32px', height: '32px', lineHeight: '32px', fontWeight: 'bold', borderRadius: '32px', cursor: 'pointer'}} 
-                                 onClick={() => this.setState({...this.state, showColourPicker: true})}>
-                                {this.props.user.name?.substr(0, 1).toUpperCase()}
-                            </div>
+                            <UserCoin user={this.props.user} onClick={() => this.setState({...this.state, showColourPicker: true})} />
                             {
                                 this.state.showColourPicker ? 
                                 <div style={{position: 'absolute', top: '-308px', zIndex: 2}}>

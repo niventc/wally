@@ -1,5 +1,5 @@
 import React, { Component, Dispatch } from "react";
-import { Navbar, Nav, FormControl, Card, Button, Alert, Modal } from "react-bootstrap";
+import { Navbar, Nav, FormControl, Card, Button, Alert, Modal, ButtonGroup } from "react-bootstrap";
 import { User as UserModel, CreateWall, JoinWall, Message, WallState, DeleteWall } from "wally-contract";
 import { useParams, Switch, Route, Redirect } from "react-router-dom";
 
@@ -95,6 +95,14 @@ class Home extends Component<DispatchFromProps & WallProps> {
                         { this.props.home.isSideBarOpen ? '[wall-y]' : undefined }
                     </Navbar.Brand>
 
+                    <Button block={this.props.home.isSideBarOpen} title="Create or join a wall" href="/" variant={this.props.user.useNightMode ? 'dark' : 'light'} >
+                        <svg className="bi bi-plus" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" d="M8 3.5a.5.5 0 01.5.5v4a.5.5 0 01-.5.5H4a.5.5 0 010-1h3.5V4a.5.5 0 01.5-.5z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M7.5 8a.5.5 0 01.5-.5h4a.5.5 0 010 1H8.5V12a.5.5 0 01-1 0V8z" clipRule="evenodd"/>
+                        </svg>
+                        { this.props.home.isSideBarOpen ? "Create or join a wall" : undefined }
+                    </Button>
+
                     { 
                         this.props.home.isSideBarOpen ? 
                         <Nav className="mr-auto" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -167,8 +175,10 @@ class Home extends Component<DispatchFromProps & WallProps> {
                                         <FormControl type="text" placeholder="Wall name" value={this.state.wallName} onChange={(e: React.FormEvent<HTMLInputElement>) => this.updateWallName(e)} />
                                     </Card.Body>
                                     <div style={{padding: '0 1.25rem 1.25rem'}}>
-                                        <Button variant="primary" onClick={() => this.joinWall()} style={{width: '50%'}}>Join</Button>
-                                        <Button variant="success" onClick={() => this.createWall()} style={{width: '50%'}}>Create</Button>
+                                        <ButtonGroup style={{width: '100%'}}>
+                                            <Button variant="primary" onClick={() => this.joinWall()} style={{width: '50%'}}>Join</Button>
+                                            <Button variant="success" onClick={() => this.createWall()} style={{width: '50%'}}>Create</Button>
+                                        </ButtonGroup>
                                     </div>
                                 </Card>
                                 {
