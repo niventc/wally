@@ -3,6 +3,6 @@ import { Store } from './store';
 
 export class ImageStore extends Store<Image> {
     constructor() {
-        super("image", 5 * 60);
+        super("image", 5);
     }
 }

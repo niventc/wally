@@ -1,4 +1,4 @@
-import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall, SelectNote, DeleteNote, NewLine, UpdateLine, DeleteLine, DeleteWall, UpdateUser, UserLeftWall } from "wally-contract";
+import { Message, WallyError, WallState, NewNote, MoveNote, UpdateNoteText, UserJoinedWall, SelectNote, DeleteNote, NewLine, UpdateLine, DeleteLine, DeleteWall, UpdateUser, UserLeftWall, NewImage, DeleteImage, UpdateImage } from "wally-contract";
 
 export interface WallReducerState {
     wall?: WallState | undefined;
@@ -41,6 +41,13 @@ export function wallReducer(
                 }
                 return { ...state, wall: {...state.wall, notes: [...state.wall.notes, newNote.note]} };
 
+            case NewImage.name:
+                const newImage = action as NewImage;
+                if (state.wall.name !== newImage.wallName) {
+                    return state;
+                }
+                return { ...state, wall: {...state.wall, images: [...state.wall.images, newImage.image]} };
+                
             case NewLine.name:
                 const newLine = action as NewLine;
                 if (state.wall.name !== newLine.wallName) {
@@ -63,6 +70,21 @@ export function wallReducer(
                     }
                 };
 
+            case DeleteImage.name:
+                const deleteImage = action as DeleteImage;
+                if (state.wall.name !== deleteImage.wallName) {
+                    return state;
+                }
+                return {
+                    ...state,
+                    wall: {
+                        ...state.wall,
+                        images: [
+                            ...state.wall.images.filter(i => i._id !== deleteImage.imageId)
+                        ]
+                    }
+                };
+
             case MoveNote.name:
                 const moveNote = action as MoveNote;
                 if (state.wall.name !== moveNote.wallName) {
@@ -75,6 +97,21 @@ export function wallReducer(
                     wall: {
                         ...state.wall,
                         notes: [...state.wall.notes.filter(x => x._id !== moveNote.noteId), movedCard]
+                    }
+                };
+
+            case UpdateImage.name:
+                const updateImage = action as UpdateImage;
+                if (state.wall.name !== updateImage.wallName) {
+                    return state;
+                }
+                const moveImage = state.wall.images.find(c => c._id === updateImage.imageId);
+                const movedImage = Object.assign({}, moveImage, updateImage.image);
+                return {
+                    ...state,
+                    wall: {
+                        ...state.wall,
+                        images: [...state.wall.images.filter(x => x._id !== updateImage.imageId), movedImage]
                     }
                 };
 

@@ -1,11 +1,12 @@
 import { WebsocketRequestHandler } from "express-ws";
-import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall, DeleteNote, NewLine, UpdateLine, DeleteLine, Line, DeleteWall } from "wally-contract";
+import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall, DeleteNote, NewLine, UpdateLine, DeleteLine, Line, DeleteWall, NewImage, UpdateImage, DeleteImage } from "wally-contract";
 
 import { NoteStore } from './store/note.store';
 import { WallStore } from './store/wall.store';
 import { UserStore } from './store/user.store';
 import { WebSocketClient, ClientService } from './client.service';
 import { LineStore } from './store/line.store';
+import { ImageStore } from './store/image.store';
 
 export class NoteService {
 
@@ -14,15 +15,18 @@ export class NoteService {
         private userStore: UserStore,
         private wallStore: WallStore,
         private noteStore: NoteStore,
-        private lineStore: LineStore
+        private lineStore: LineStore,
+        private imageStore: ImageStore
     ) {}
 
     public onWebSocket: WebsocketRequestHandler = (ws, req, next): void => {
         const wsc = <WebSocketClient><unknown>ws;
         ws.on('message', async (data: string) => {
-            console.log("Received", data);
-
             const message = JSON.parse(data) as Message;
+
+            if (message.type !== NewImage.name) {
+                console.log("Received", message);
+            }
             
             switch (message.type) {
                 case UpdateUser.name:
@@ -48,7 +52,7 @@ export class NoteService {
                         const clients = await this.wallStore.addClient(createWall.name, wsc.identity); 
                         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
 
-                        ws.send(JSON.stringify(new WallState(wall.name, [], [], users, {})));
+                        ws.send(JSON.stringify(new WallState(wall.name, [], [], users, [], {})));
                     }
                     break;
 
@@ -87,6 +91,7 @@ export class NoteService {
 
                         const lines = await this.lineStore.getLines(joinedWall.lines);
                         const notes = await this.noteStore.getItems(joinedWall.notes);
+                        const images = await this.imageStore.getItems(joinedWall.images);
                         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
                         const selected = {};
                         users.forEach(u => {
@@ -96,7 +101,7 @@ export class NoteService {
                             }
                         });
 
-                        ws.send(JSON.stringify(new WallState(joinedWall.name, lines, notes, users, selected)));
+                        ws.send(JSON.stringify(new WallState(joinedWall.name, lines, notes, users,images, selected)));
 
                         const otherUsers = clients.filter(c => c.uuid !== wsc.identity.uuid).map(c => c.uuid);
                         const otherInstances = this.clientService.getInstances(otherUsers);
@@ -104,6 +109,26 @@ export class NoteService {
                         const userJoined = JSON.stringify(new UserJoinedWall(joinWall.name, currentUser));
                         otherInstances.forEach(x => x.send(userJoined));
                     }
+                    break;
+
+                case NewImage.name:
+                    const newImage = message as NewImage;
+                    this.imageStore.addItem(newImage.image);
+                    this.wallStore.addImage(newImage.wallName, newImage.image._id);
+                    this.sendToWallUsers(newImage.wallName, newImage, wsc.identity.uuid);
+                    break;
+
+                case UpdateImage.name:
+                    const updateImage = message as UpdateImage;
+                    this.imageStore.updateItem(updateImage.imageId, updateImage.image);
+                    this.sendToWallUsers(updateImage.wallName, updateImage, wsc.identity.uuid);                  
+                    break;
+
+                case DeleteImage.name:
+                    const deleteImage = message as DeleteImage;
+                    this.wallStore.removeImage(deleteImage.wallName, deleteImage.imageId);
+                    this.imageStore.deleteItem(deleteImage.imageId);
+                    this.sendToWallUsers(deleteImage.wallName, deleteImage);
                     break;
 
                 case NewNote.name:

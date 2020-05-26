@@ -52,6 +52,7 @@ export class WallState implements Message {
         public lines: Array<Line>,
         public notes: Array<Note>, 
         public users: Array<User>,
+        public images: Array<Image>,
         // user id to note id
         public selectedNotes: { [key: string] : string }
     ) {
@@ -82,7 +83,7 @@ export class NewImage implements Message {
 export class UpdateImage implements Message {
     type = "UpdateImage";
 
-    constructor (public wallName: string, public image: Partial<Image>) {
+    constructor (public wallName: string, public imageId: string, public image: Partial<Image>) {
     }
 }
 
