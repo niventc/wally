@@ -10,6 +10,12 @@ const initialState: HomeReducerState = {
     isSideBarOpen: false
 };
 
+export class RemoveWall implements Message {
+    type = "RemoveWall";
+
+    constructor(public name: string) { }
+}
+
 export class ToggleSideBar { // implements Message {   
 
     constructor(public type = "ToggleSideBar") {}
@@ -23,6 +29,10 @@ export function homeReducer(
         case WallState.name:
             const wallState = action as WallState;
             return { ...state, recentWalls: [wallState.name, ...state.recentWalls.filter(w => w !== wallState.name)] };
+
+        case RemoveWall.name:
+            const removeWall = action as RemoveWall;
+            return { ...state, recentWalls: state.recentWalls.filter(w => w !== removeWall.name) };
 
         case DeleteWall.name:
             const deleteWall = action as DeleteWall;

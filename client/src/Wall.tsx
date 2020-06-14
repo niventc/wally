@@ -364,7 +364,6 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
     }
 
     public handleLinkClick(e: React.PointerEvent): void {
-        console.log("click");
         e.stopPropagation();
         e.preventDefault();
     }

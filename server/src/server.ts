@@ -10,6 +10,12 @@ import { WebSocketClient, ClientService, WebSocketIdentity } from './client.serv
 import { UserStore } from './store/user.store';
 import { UserConnected, UserLeftWall } from 'wally-contract';
 import { LineStore } from './store/line.store';
+import { WallController } from './api/wall.controller';
+import { WallService } from './wall.services';
+
+export interface Controller {
+    router: express.Router;
+}
 
 class Server {
     public app: express.Application;
@@ -20,6 +26,8 @@ class Server {
     private noteStore = new NoteStore();
     private lineStore = new LineStore();
 
+    private wallService = new WallService(this.lineStore, this.noteStore, this.userStore, this.wallStore);
+
     constructor(
         private port: number
     ) {
@@ -27,10 +35,22 @@ class Server {
 
         app.use(express.static("client"));
 
-        this.app = this.initializeWebSocket(app);
+        const controllers = [new WallController(this.wallService)];
 
+        this.app = this.initializeWebSocket(app);
+        this.initializeControllers(this.app, controllers);
+
+        // reserved sub routes
+        this.app.get('/api/*', (req, res) => res.sendStatus(404));
+        this.app.get('/ws*', (req, res) => res.sendStatus(404));
         // fall through
         this.app.get('*', (req, res) => res.sendFile('./client/index.html', { root: path.resolve() }));
+    }
+
+    private initializeControllers(app: express.Application, controllers: Controller[]): void {
+        controllers.forEach(controller => {
+            app.use('/api', controller.router);
+        });
     }
 
     private initializeWebSocket(app: express.Application): express.Application {
