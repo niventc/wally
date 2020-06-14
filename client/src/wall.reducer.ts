@@ -39,7 +39,7 @@ export function wallReducer(
                 if (state.wall.name !== newNote.wallName) {
                     return state;
                 }
-                return { ...state, wall: {...state.wall, notes: [...state.wall.notes, newNote.note]} };
+                return { ...state, wall: {...state.wall, notes: [...state.wall.notes.filter(n => n._id !== newNote.note._id), newNote.note]} };
 
             case NewLine.name:
                 const newLine = action as NewLine;

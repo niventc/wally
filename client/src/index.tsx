@@ -16,6 +16,7 @@ import { userReducer } from './user.reducer';
 import { wallReducer } from './wall.reducer';
 import { webSocketMiddleware, Connect } from './webSocket.middleware';
 import { PersistGate } from 'redux-persist/integration/react';
+import { undoMiddleware } from './undo.middleware';
 
 const rootReducer = combineReducers({home: homeReducer, wall: wallReducer, user: userReducer});
 const persistConfig = {
@@ -24,7 +25,7 @@ const persistConfig = {
   whitelist: ["home"]
 };
 const peristedReducer = persistReducer(persistConfig, rootReducer);
-const store = createStore(peristedReducer, applyMiddleware(webSocketMiddleware()));
+const store = createStore(peristedReducer, applyMiddleware(undoMiddleware(), webSocketMiddleware()));
 const persistor = persistStore(store);
 
 // Init middleware, shouldn't be here...

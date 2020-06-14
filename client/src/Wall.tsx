@@ -11,6 +11,7 @@ import { startWith, throttleTime, map, tap } from "rxjs/operators";
 import { SendWrapper } from "./webSocket.middleware";
 import { SketchPicker } from "react-color";
 import { UserCoin } from "./UserCoin";
+import { Undo } from "./undo.middleware";
 
 interface WallProps {
     wall: WallState;
@@ -42,6 +43,8 @@ interface ConnectedProps {
     newLine: (wallId: string, line: Line) => void;
     updateLine: (wallId: string, lineId: string, points: Array<[number, number]>, replace: boolean) => void;
     deleteLine: (wallId: string, lineId: string) => void;
+
+    undo: () => void;
 }
 
 export default connect<StateProps, ConnectedProps>(
@@ -54,7 +57,9 @@ export default connect<StateProps, ConnectedProps>(
         deleteNote: (wallId: string, noteId: string) => dispatch(new SendWrapper(new DeleteNote(wallId, noteId))),
         newLine: (wallId: string, line: Line) => dispatch(new SendWrapper(new NewLine(wallId, line))),
         updateLine: (wallId: string, lineId: string, points: Array<[number, number]>, replace: boolean) => dispatch(new SendWrapper(new UpdateLine(wallId, lineId, points, replace))),
-        deleteLine: (wallId: string, lineId: string) => dispatch(new SendWrapper(new DeleteLine(wallId, lineId)))
+        deleteLine: (wallId: string, lineId: string) => dispatch(new SendWrapper(new DeleteLine(wallId, lineId))),
+
+        undo: () => dispatch({...new Undo()})
     })
 )(
 class Wall extends Component<WallProps & StateProps & ConnectedProps> {
@@ -83,6 +88,13 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
 
     public componentDidMount(): void {
         if (this.wallRef.current) {
+            const keyPress = fromEvent<KeyboardEvent>(document, "keydown");
+            keyPress.subscribe(e => {
+                if (e.key === "z" && e.ctrlKey && e.altKey) {
+                    this.props.undo();
+                }
+            });
+
             const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");
             const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
             pointerdown.subscribe(e => {
@@ -456,6 +468,12 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                           title="Change your user colour from the sidebar"
                           onPointerDown={(e: React.PointerEvent) => this.cloneNote(e, this.props.user.colour)}>
                     </Card>
+                    <Button variant={this.props.user.useNightMode ? 'dark' : 'light'} style={{ marginTop: 5, textAlign: 'right'}} title="Undo delete note (Ctrl + Alt + Z)" onPointerDown={(e: React.PointerEvent) => this.props.undo()}>
+                        <svg className="bi bi-arrow-counterclockwise" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" d="M12.83 6.706a5 5 0 0 0-7.103-3.16.5.5 0 1 1-.454-.892A6 6 0 1 1 2.545 5.5a.5.5 0 1 1 .91.417 5 5 0 1 0 9.375.789z"/>
+                            <path fillRule="evenodd" d="M7.854.146a.5.5 0 0 0-.708 0l-2.5 2.5a.5.5 0 0 0 0 .708l2.5 2.5a.5.5 0 1 0 .708-.708L5.707 3 7.854.854a.5.5 0 0 0 0-.708z"/>
+                        </svg>
+                    </Button>
                 </div>
             </div>
         );
