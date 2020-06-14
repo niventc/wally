@@ -90,7 +90,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
             // local development, environment variables are set at build time so can't overwrite in production
             return "http://localhost:5000/";
         }
-        return window.location.protocol.toLowerCase() + "://" + window.location.host + "/";
+        return window.location.protocol.toLowerCase() + "//" + window.location.host + "/";
     }
 
     public exportWallAsJson(name: string): void {
@@ -106,6 +106,10 @@ class Home extends Component<DispatchFromProps & WallProps> {
         element.click();
 
         document.body.removeChild(element);
+    }
+
+    public getDownloadUrl(name: string): string {
+        return this.getServerBaseUrl() + "api/wall/" + escape(name);
     }
 
     public render(): JSX.Element {
@@ -140,7 +144,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
                                         {w}
                                     </Nav.Link>
                                     <NavDropdown title="" id={w + "-dropdown"}>
-                                        <NavDropdown.Item onClick={() => this.exportWallAsJson(w)}>
+                                        <NavDropdown.Item href={this.getDownloadUrl(w)} download={w + ".json"}>
                                             <svg className="bi bi-download" style={{marginRight: 12}} width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                                 <path fillRule="evenodd" d="M.5 8a.5.5 0 0 1 .5.5V12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5a.5.5 0 0 1 1 0V12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8.5A.5.5 0 0 1 .5 8z"/>
                                                 <path fillRule="evenodd" d="M5 7.5a.5.5 0 0 1 .707 0L8 9.793 10.293 7.5a.5.5 0 1 1 .707.707l-2.646 2.647a.5.5 0 0 1-.708 0L5 8.207A.5.5 0 0 1 5 7.5z"/>
