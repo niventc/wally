@@ -17,6 +17,7 @@ import moment from 'moment';
 interface HomeState {
     wallName: string;
     showAbout: boolean;
+    showBanner: boolean;
 }
 
 interface WallProps {
@@ -65,8 +66,15 @@ class Home extends Component<DispatchFromProps & WallProps> {
 
     public state: HomeState = {
         wallName: '',
-        showAbout: false
+        showAbout: false,
+        showBanner: false
     };
+
+    public componentDidMount(): void {
+        if (process.env.REACT_APP_BANNER) {
+            this.setState({...this.state, showBanner: true});
+        }
+    }
 
     public componentDidUpdate(prevProps: any, prevState: any): void {
         componentDidMountChanges(this.props, prevProps, this.state, prevState);
@@ -287,7 +295,22 @@ class Home extends Component<DispatchFromProps & WallProps> {
 
                         <a href="http://github.com/niventc/wally" rel="noopener noreferrer" target="_blank">http://github.com/niventc/wally</a>
                     </Modal.Body>
-                </Modal>              
+                </Modal>
+
+                <Modal size="sm"
+                       className={this.props.user.useNightMode ? "dark-modal" : "light-modal"}
+                       show={this.state.showBanner}
+                       onHide={() => false}
+                       aria-labelledby="contained-modal-title-vcenter"
+                       centered>
+                    <Modal.Body style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>                        
+                        <p>
+                            {process.env.REACT_APP_BANNER}
+                        </p>
+
+                        <Button onClick={() => this.setState({...this.state, showBanner: false})}>I understand</Button>
+                    </Modal.Body>
+                </Modal>          
 
             </div>
         )
