@@ -13,6 +13,9 @@ import { SketchPicker } from "react-color";
 import { UserCoin } from "./UserCoin";
 import { Undo } from "./undo.middleware";
 
+import Linkify from 'react-linkify';
+import { getContrastColour } from "./utils";
+
 interface WallProps {
     wall: WallState;
 }
@@ -360,6 +363,12 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         return newFontSize;
     }
 
+    public handleLinkClick(e: React.PointerEvent): void {
+        console.log("click");
+        e.stopPropagation();
+        e.preventDefault();
+    }
+
     public render(): JSX.Element {
         let svgSize = this.getSvgSize();
         return (
@@ -377,27 +386,36 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                                 style={{ width: '150px', boxShadow: this.getBorder(note._id), height: '150px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
                                 onPointerDown={(e: React.PointerEvent) => this.startMove(note._id,e)}>
                                 <Card.Body style={{ padding: '12px' }}>
-                                    <textarea value={note.text} 
-                                            onPointerDown={(e: React.PointerEvent) => this.select(note._id,e)}
-                                            onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.updateNoteText(e, note._id)} 
-                                            style={{ overflow: 'hidden', background: 'transparent', fontSize: this.getFontSize(note.text), height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
-                                    </textarea>
-
+                                    { 
+                                        this.isNoteSelectedByUser(note._id) ?
+                                        <>
+                                            <textarea value={note.text} 
+                                                    onPointerDown={(e: React.PointerEvent) => this.select(note._id,e)}
+                                                    onChange={(e: React.FormEvent<HTMLTextAreaElement>) => this.updateNoteText(e, note._id)} 
+                                                    style={{ overflow: 'hidden', background: 'transparent', color: getContrastColour(note.colour), fontSize: this.getFontSize(note.text), height: '100%', width: '100%', border: 'none', outline: 'none', resize: 'none' }}>
+                                            </textarea>
+                                            <span className="hover-icon bottom-right" title="Delete note" onPointerDown={(e) => this.deleteNote(e, note._id)}>
+                                                <svg className="bi bi-trash" width="1em" height="0.8em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                    <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
+                                                    <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
+                                                </svg>
+                                            </span>
+                                        </>
+                                        :
+                                        <div style={{padding: 2, color: getContrastColour(note.colour), fontSize: this.getFontSize(note.text)}}>
+                                            <Linkify componentDecorator={(decoratedHref, decoratedText, key) => (
+                                                    <a target="blank" style={{ textDecoration: 'underline', color: getContrastColour(note.colour)}} href={decoratedHref} key={key} onPointerDown={(e) => this.handleLinkClick(e)}>
+                                                        {decoratedText}
+                                                    </a>
+                                                )}>
+                                                {note.text}
+                                            </Linkify>
+                                        </div>
+                                    }
                                     {
                                         note.text.length > 230 ?
                                         <span style={{fontSize: 8, color: 'rgba(0,0,0,0.5)', bottom: 3, left: 3, position: 'absolute'}}>{note.text.length}/280</span>
                                         : undefined
-                                    }
-                                    
-                                    { 
-                                        this.isNoteSelectedByUser(note._id) ?
-                                        <span className="hover-icon bottom-right" title="Delete note" onPointerDown={(e) => this.deleteNote(e, note._id)}>
-                                            <svg className="bi bi-trash" width="1em" height="0.8em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
-                                                <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
-                                            </svg>
-                                        </span>
-                                        : undefined 
                                     }
                                 </Card.Body>
                             </Card>

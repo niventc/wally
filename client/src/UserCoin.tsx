@@ -1,5 +1,6 @@
 import React from "react";
 import { User } from "wally-contract";
+import { getContrastColour } from "./utils";
 
 interface UserCoinProps {
     user: User;
@@ -24,24 +25,6 @@ export const UserCoin: React.SFC<UserCoinProps> = (props) => {
         if (props.onClick) {
             props.onClick();
         }
-    }
-
-    const getContrastColour = (colour: string) => {
-        let r, g, b = 0;
-        if (colour.startsWith("#")) {
-            const cleanHex = colour.replace("#", "");
-            r = parseInt(cleanHex.substr(0, 2), 16);
-            g = parseInt(cleanHex.substr(2, 2), 16);
-            b = parseInt(cleanHex.substr(4, 2), 16);
-        } else {
-            const cleanRgb = colour.replace("rgb(", "");
-            const rgbSplit = cleanRgb.split(",");
-            r = parseInt(rgbSplit[0],10);
-            g = parseInt(rgbSplit[1],10);
-            b = parseInt(rgbSplit[2],16);
-        }
-        var yiq = ((r*299)+(g*587)+(b*114))/1000;
-        return (yiq >= 128) ? 'black' : 'white';
     }
     
     return (
