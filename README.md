@@ -11,11 +11,11 @@ Demo available: https://wally.azurewebsites.net (state persists until next resta
 
 1. Use the docker image (https://hub.docker.com/r/niventc/wally)
 ```
-docker run -p 8080:8080 -e PORT=8080 -e NEDB_ROOT_DIR=/data -v <LOCALDIRECTORY>:/data niventc/wally:v0.0.12
+docker run -p 8080:8080 -e PORT=8080 -e NEDB_ROOT_DIR=/data -v <LOCALDIRECTORY>:/data niventc/wally:<latest release e.g. v0.9.0>
 ```
 *Configure NEDB_ROOT to point to the mounted directory to persist state between restarts*
 
-2. Download the latest release artifact e.g. https://github.com/niventc/wally/releases/download/v0.0.12/dist.zip
+2. Download the latest release artifact e.g. https://github.com/niventc/wally/releases/latest/download/dist.zip
 ```
 node server.js
 ```
