@@ -376,6 +376,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 <textarea id="testarea" style={{ position: 'fixed', left: -150, visibility: 'hidden', overflow: 'hidden', height: '124px', width: '124px', border: 'none', outline: 'none', resize: 'none' }}></textarea>
 
                 <div ref={this.wallRef} 
+                    id="wall"
                     style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
                     onTouchEnd={() => this.unselect()} 
                     onPointerUp={() => this.unselect()}>

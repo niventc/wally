@@ -11,6 +11,9 @@ import { WallReducerState } from "./wall.reducer";
 import { HomeReducerState, RemoveWall } from "./home.reducer";
 import { componentDidMountChanges, useTraceUpdate } from "./utils";
 
+import html2canvas from 'html2canvas';
+import moment from 'moment';
+
 interface HomeState {
     wallName: string;
     showAbout: boolean;
@@ -112,6 +115,28 @@ class Home extends Component<DispatchFromProps & WallProps> {
         return this.getServerBaseUrl() + "api/wall/" + escape(name);
     }
 
+    public getWallImage(name: string): void {
+        const wallElement = document.getElementById("wall");
+        if (wallElement) {
+            html2canvas(wallElement, {backgroundColor: this.props.user.useNightMode ? '#282c34' : 'white', width: wallElement.scrollWidth, height: wallElement.scrollHeight}).then(canvas => {
+                let element = document.createElement('a');
+                
+                element.setAttribute('href', canvas.toDataURL());
+                element.setAttribute('download', name + "-" + moment().format("YYYYMMDD-HHmmSS") + ".png");
+                element.style.display = 'none';
+                document.body.appendChild(element);
+        
+                element.click();
+        
+                document.body.removeChild(element);
+            });
+        }
+    }
+
+    public isCurrentWall(name: string): boolean {
+        return name === this.props.wall?.wall?.name;
+    }
+
     public render(): JSX.Element {
         return (
             <div className="App" style={{ position: 'fixed', display: 'flex', flexDirection: 'row', background: this.props.user.useNightMode ? '#282c34' : 'inherit'}}>
@@ -143,7 +168,15 @@ class Home extends Component<DispatchFromProps & WallProps> {
                                     <Nav.Link href={"/" + escape(w)}>
                                         {w}
                                     </Nav.Link>
-                                    <NavDropdown title="" id={w + "-dropdown"}>
+                                    <NavDropdown title="" id={w + "-dropdown"}>                                        
+                                        <NavDropdown.Item disabled={!this.isCurrentWall(w)} onClick={() => this.getWallImage(w)}>
+                                            <svg className="bi bi-card-image" style={{marginRight: 12}} width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                <path fillRule="evenodd" d="M14.5 3h-13a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
+                                                <path d="M10.648 7.646a.5.5 0 0 1 .577-.093L15.002 9.5V13h-14v-1l2.646-2.354a.5.5 0 0 1 .63-.062l2.66 1.773 3.71-3.71z"/>
+                                                <path fillRule="evenodd" d="M4.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+                                            </svg>
+                                            Capture Image { this.isCurrentWall(w) ? '' : '(join wall to enable)'}
+                                        </NavDropdown.Item>
                                         <NavDropdown.Item href={this.getDownloadUrl(w)} download={w + ".json"}>
                                             <svg className="bi bi-download" style={{marginRight: 12}} width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                                 <path fillRule="evenodd" d="M.5 8a.5.5 0 0 1 .5.5V12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5a.5.5 0 0 1 1 0V12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8.5A.5.5 0 0 1 .5 8z"/>
