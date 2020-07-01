@@ -10,8 +10,11 @@ import { WebSocketClient, ClientService, WebSocketIdentity } from './client.serv
 import { UserStore } from './store/user.store';
 import { UserConnected, UserLeftWall } from 'wally-contract';
 import { LineStore } from './store/line.store';
+import { ImageStore } from './store/image.store';
 import { WallController } from './api/wall.controller';
 import { WallService } from './wall.services';
+import { DataStore } from './store/data.store';
+import { DataController } from './api/data.controller';
 
 export interface Controller {
     router: express.Router;
@@ -25,8 +28,10 @@ class Server {
     private wallStore = new WallStore();
     private noteStore = new NoteStore();
     private lineStore = new LineStore();
+    private imageStore = new ImageStore();
+    private dataStore = new DataStore();
 
-    private wallService = new WallService(this.lineStore, this.noteStore, this.userStore, this.wallStore);
+    private wallService = new WallService(this.imageStore, this.lineStore, this.noteStore, this.userStore, this.wallStore);
 
     constructor(
         private port: number
@@ -35,7 +40,10 @@ class Server {
 
         app.use(express.static("client"));
 
-        const controllers = [new WallController(this.wallService)];
+        const controllers = [
+            new WallController(this.wallService),
+            new DataController(this.dataStore)
+        ];
 
         this.app = this.initializeWebSocket(app);
         this.initializeControllers(this.app, controllers);
@@ -55,7 +63,15 @@ class Server {
 
     private initializeWebSocket(app: express.Application): express.Application {
         const wsInstance = expressWs(app);
-        const noteService = new NoteService(this.clientService, this.userStore, this.wallStore, this.noteStore, this.lineStore);
+        const noteService = new NoteService(
+            this.clientService, 
+            this.userStore, 
+            this.wallStore, 
+            this.noteStore, 
+            this.lineStore, 
+            this.imageStore,
+            this.dataStore
+        );
 
         wsInstance.app.ws('/ws', noteService.onWebSocket);
 

@@ -1,5 +1,6 @@
+import { Id } from 'model';
 
-export class Note {    
+export class Note implements Id {    
     constructor(
         public _id: string,
         public zIndex: number,

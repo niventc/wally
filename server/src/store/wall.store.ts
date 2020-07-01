@@ -5,6 +5,7 @@ class Wall {
     public _id: string;
     public lines = new Array<string>();
     public notes = new Array<string>();
+    public images = new Array<string>();
 
     constructor(public name: string) {}
 }
@@ -110,6 +111,34 @@ export class WallStore {
                     reject(error);
                 } else {
                     console.log("Removed note from wall");
+                    resolve();
+                }
+            });
+        });
+    }
+
+    public async addImage(name: string, imageId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.dataStore.update({ name: name }, { $push: { images: imageId }}, {}, (error, numUpdated, upsert) => {
+                if (error) {
+                    console.error("Failed to add image", error);
+                    reject(error);
+                } else {
+                    console.log("Added image to wall");
+                    resolve();
+                }
+            });
+        });
+    }
+
+    public async removeImage(name: string, imageId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.dataStore.update({ name: name }, { $pull: { images: imageId } }, {}, (error, numUpdated, upsert) => {
+                if (error) {
+                    console.error("Failed to remove image", error);
+                    reject(error);
+                } else {
+                    console.log("Removed image from wall");
                     resolve();
                 }
             });
