@@ -76,7 +76,7 @@ export class NewNote implements Message {
 export class NewImage implements Message {
     type = "NewImage";
 
-    constructor (public wallName: string, public image: Image) {
+    constructor (public wallName: string, public image: Image, public data: string) {
     }
 }
 

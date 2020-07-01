@@ -14,7 +14,7 @@ import { UserCoin } from "./UserCoin";
 import { Undo } from "./undo.middleware";
 
 import Linkify from 'react-linkify';
-import { getContrastColour } from "./utils";
+import { getContrastColour, getServerBaseUrl } from "./utils";
 
 interface WallProps {
     wall: WallState;
@@ -47,7 +47,7 @@ interface ConnectedProps {
     newLine: (wallId: string, line: Line) => void;
     updateLine: (wallId: string, lineId: string, points: Array<[number, number]>, replace: boolean) => void;
     deleteLine: (wallId: string, lineId: string) => void;
-    newImage: (wallId: string, image: ImageCard) => void;
+    newImage: (wallId: string, image: ImageCard, data: string) => void;
     moveImage: (wallId: string, imageId: string, x: number, y: number) => void;
     deleteImage: (wallId: string, imageId: string) => void;
     undo: () => void;
@@ -64,7 +64,7 @@ export default connect<StateProps, ConnectedProps>(
         newLine: (wallId: string, line: Line) => dispatch(new SendWrapper(new NewLine(wallId, line))),
         updateLine: (wallId: string, lineId: string, points: Array<[number, number]>, replace: boolean) => dispatch(new SendWrapper(new UpdateLine(wallId, lineId, points, replace))),
         deleteLine: (wallId: string, lineId: string) => dispatch(new SendWrapper(new DeleteLine(wallId, lineId))),
-        newImage: (wallId: string, image: ImageCard) => dispatch(new SendWrapper(new NewImage(wallId, image))),        
+        newImage: (wallId: string, image: ImageCard, data: string) => dispatch(new SendWrapper(new NewImage(wallId, image, data))),        
         moveImage: (wallId: string, imageId: string, x: number, y: number) => dispatch(new SendWrapper(new UpdateImage(wallId, imageId, { x: x, y: y }))),
         deleteImage: (wallId: string, imageId: string) => dispatch(new SendWrapper(new DeleteImage(wallId, imageId))),
         undo: () => dispatch({...new Undo()})
@@ -160,18 +160,21 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
 
                                         const img = new Image();
                                         img.onload = () => {
-                                            this.props.newImage(this.props.wall.name, {
-                                                _id: uuidv4(),
-                                                name: file.name,
-                                                value: result,
-                                                x: e.clientX - bounding.left,
-                                                y: e.clientY - bounding.top,
-                                                zIndex: 0,
-                                                originalWidth: img.width,
-                                                originalHeight: img.height,
-                                                width: img.width,
-                                                height: img.height
-                                            });
+                                            this.props.newImage(
+                                                this.props.wall.name, 
+                                                {
+                                                    _id: uuidv4(),
+                                                    name: file.name,
+                                                    x: e.clientX - bounding.left,
+                                                    y: e.clientY - bounding.top,
+                                                    zIndex: 0,
+                                                    originalWidth: img.width,
+                                                    originalHeight: img.height,
+                                                    width: img.width,
+                                                    height: img.height
+                                                },                                                
+                                                result
+                                            );
                                         };
                                         img.src = result;
                                     }
@@ -347,11 +350,16 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
     }
     
     public startMoveImage(imageId: string, e: React.MouseEvent | React.TouchEvent): void {
+        e.preventDefault();
+
+        if (this.state.selectedMode || this.state.inEraseMode) {
+            // We're in tool mode ignore it
+            return;
+        }
         // this.props.selectNote(this.props.wall.name, noteId, this.props.user); 
         this.setState({...this.state, selectedImageId: imageId});
 
         e.stopPropagation();
-        e.preventDefault();
     }
 
     public unselect(): void {
@@ -464,6 +472,21 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
                     onTouchEnd={() => this.unselect()} 
                     onPointerUp={() => this.unselect()}>
+
+                    {
+                        this.props.wall.images.map(i => 
+                            <div key={i._id} style={{position: 'absolute', left: i.x, top: i.y}} onPointerDown={(e: React.PointerEvent) => this.startMoveImage(i._id,e)}>
+                                <img src={getServerBaseUrl() + "api/data/" + i._id} alt={i.name}  />
+                                <span className="hover-icon bottom-right" title="Delete image" onPointerDown={(e) => this.deleteImage(e, i._id)}>
+                                    <svg className="bi bi-trash" width="1em" height="0.8em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
+                                        <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
+                                    </svg>
+                                </span>
+                            </div>
+                        )
+                    }
+
                     {
                         this.props.wall.notes.map(note => 
                             <Card key={note._id} 
@@ -506,7 +529,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         )
                     }
                 
-                    <svg style={{width: svgSize[0] + 'px', height: svgSize[1] + 'px'}}>
+                    <svg style={{ position: 'absolute', pointerEvents: this.state.inEraseMode ? 'all' : 'none', width: svgSize[0] + 'px', height: svgSize[1] + 'px'}}>
                         {
                             this.props.wall.lines
                                 .filter(l => l && l.points && l.points.length > 1)
@@ -514,21 +537,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                                     <path key={l._id} onMouseOver={() => this.deleteLine(l._id)} d={this.getSvgFromLine(l.points)} stroke={l.colour} strokeWidth={l.width} fill="none" />
                                 )
                         }
-                    </svg>
-
-                    {
-                        this.props.wall.images.map(i => 
-                            <div key={i._id} style={{position: 'absolute', left: i.x, top: i.y}} onPointerDown={(e: React.PointerEvent) => this.startMoveImage(i._id,e)}>
-                                <img src={i.value} alt={i.name} style={{maxWidth: 150, maxHeight: 150}} />
-                                <span className="hover-icon bottom-right" title="Delete image" onPointerDown={(e) => this.deleteImage(e, i._id)}>
-                                    <svg className="bi bi-trash" width="1em" height="0.8em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
-                                        <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
-                                    </svg>
-                                </span>
-                            </div>
-                        )
-                    }
+                    </svg>                    
                 </div>
 
                 <div style={{ zIndex: 90, position: 'fixed', top: '12px', right: '12px', display: 'flex', flexDirection: 'row' }}>

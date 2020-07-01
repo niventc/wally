@@ -7,6 +7,7 @@ import { UserStore } from './store/user.store';
 import { WebSocketClient, ClientService } from './client.service';
 import { LineStore } from './store/line.store';
 import { ImageStore } from './store/image.store';
+import { DataStore } from './store/data.store';
 
 export class NoteService {
 
@@ -16,7 +17,8 @@ export class NoteService {
         private wallStore: WallStore,
         private noteStore: NoteStore,
         private lineStore: LineStore,
-        private imageStore: ImageStore
+        private imageStore: ImageStore,
+        private dataStore: DataStore
     ) {}
 
     public onWebSocket: WebsocketRequestHandler = (ws, req, next): void => {
@@ -114,6 +116,7 @@ export class NoteService {
 
                 case NewImage.name:
                     const newImage = message as NewImage;
+                    this.dataStore.addItem({_id: newImage.image._id, data: newImage.data});
                     this.imageStore.addItem(newImage.image);
                     this.wallStore.addImage(newImage.wallName, newImage.image._id);
                     this.sendToWallUsers(newImage.wallName, newImage, wsc.identity.uuid);
@@ -127,6 +130,7 @@ export class NoteService {
 
                 case DeleteImage.name:
                     const deleteImage = message as DeleteImage;
+                    this.dataStore.deleteItem(deleteImage.imageId);
                     this.wallStore.removeImage(deleteImage.wallName, deleteImage.imageId);
                     this.imageStore.deleteItem(deleteImage.imageId);
                     this.sendToWallUsers(deleteImage.wallName, deleteImage);

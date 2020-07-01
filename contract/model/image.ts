@@ -10,7 +10,6 @@ export class Image implements Id {
         public originalWidth: number,
         public originalHeight: number,
         public width: number,
-        public height: number,
-        public value: string
+        public height: number
     ) {}
 }

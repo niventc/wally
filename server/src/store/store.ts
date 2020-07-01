@@ -23,10 +23,23 @@ export class Store<T extends Id> {
             });
         });
     }
+
+    public async getItem(id: string): Promise<T> {
+        return new Promise<T>((resolve, reject) => {
+            this.dataStore.findOne({ _id: id }, (error, item) => {
+                if (error) {
+                    console.error(`Failed to get ${this.name}s`, error);
+                    reject(error);
+                } else {
+                    resolve(item);
+                }
+            })
+        });        
+    }
     
-    public async getItems(noteIds: Array<string>): Promise<Array<T>> {
+    public async getItems(ids: Array<string>): Promise<Array<T>> {
         return new Promise<Array<T>>((resolve, reject) => {
-            this.dataStore.find({ _id: { $in: noteIds }}, (error, notes) => {
+            this.dataStore.find({ _id: { $in: ids }}, (error, notes) => {
                 if (error) {
                     console.error(`Failed to get ${this.name}s`, error);
                     reject(error);
