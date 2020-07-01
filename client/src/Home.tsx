@@ -9,7 +9,7 @@ import User from "./User";
 import { SendWrapper } from "./webSocket.middleware";
 import { WallReducerState } from "./wall.reducer";
 import { HomeReducerState, RemoveWall } from "./home.reducer";
-import { componentDidMountChanges, useTraceUpdate } from "./utils";
+import { componentDidMountChanges, useTraceUpdate, getServerBaseUrl } from "./utils";
 
 import html2canvas from 'html2canvas';
 import moment from 'moment';
@@ -96,19 +96,11 @@ class Home extends Component<DispatchFromProps & WallProps> {
         this.props.deleteWall(wallName);
     }
 
-    private getServerBaseUrl(): string {
-        if (process.env.NODE_ENV === "development") {
-            // local development, environment variables are set at build time so can't overwrite in production
-            return "http://localhost:5000/";
-        }
-        return window.location.protocol.toLowerCase() + "//" + window.location.host + "/";
-    }
-
     public exportWallAsJson(name: string): void {
         let element = document.createElement('a');
         // element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(this.props.wall.wall));
         element.setAttribute('target', 'blank');
-        element.setAttribute('href', this.getServerBaseUrl() + "api/wall/" + escape(name))
+        element.setAttribute('href', getServerBaseUrl() + "api/wall/" + escape(name))
         element.setAttribute('download', name + ".json");
 
         element.style.display = 'none';
@@ -120,7 +112,7 @@ class Home extends Component<DispatchFromProps & WallProps> {
     }
 
     public getDownloadUrl(name: string): string {
-        return this.getServerBaseUrl() + "api/wall/" + escape(name);
+        return getServerBaseUrl() + "api/wall/" + escape(name);
     }
 
     public getWallImage(name: string): void {

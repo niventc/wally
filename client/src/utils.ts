@@ -76,3 +76,11 @@ export function getContrastColour(colour: string): string {
     let yiq = ((r*299)+(g*587)+(b*114))/1000;
     return (yiq >= 104) ? 'black' : 'white';
 }
+
+export function getServerBaseUrl(): string {
+    if (process.env.NODE_ENV === "development") {
+        // local development, environment variables are set at build time so can't overwrite in production
+        return "http://localhost:5000/";
+    }
+    return window.location.protocol.toLowerCase() + "//" + window.location.host + "/";
+}
