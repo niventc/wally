@@ -22,6 +22,7 @@ export class NoteService {
     public onWebSocket: WebsocketRequestHandler = (ws, req, next): void => {
         const wsc = <WebSocketClient><unknown>ws;
         ws.on('message', async (data: string) => {
+            // console.log("Received", data);
             const message = JSON.parse(data) as Message;
 
             if (message.type !== NewImage.name) {

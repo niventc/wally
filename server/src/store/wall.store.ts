@@ -22,6 +22,19 @@ export class WallStore {
         this.dataStore.persistence.setAutocompactionInterval(30 * 60 * 1000); // try compacting every 30 minutes
     }
 
+    public async getWalls(): Promise<Array<string>> {
+        return new Promise((resolve, reject) => {
+            this.dataStore.find({}, (error, walls) => {
+                if (error) {
+                    console.error("Failed to find walls", error);
+                    reject(error);
+                } else {
+                    resolve(walls.map(w => w.name));
+                }
+            })
+        });
+    }
+
     public async doesWallExist(name: string): Promise<boolean> {
         return new Promise((resolve, reject) => {
             this.dataStore.findOne({ name: name }, (error, wall) => {
@@ -32,7 +45,7 @@ export class WallStore {
                     resolve(wall !== null);
                 }
             })
-        })
+        });
     }
 
     public async createWall(name: string): Promise<Wall> {
@@ -186,7 +199,8 @@ export class WallStore {
     public async getClients(name: string): Promise<Array<WebSocketIdentity>> {
         return new Promise((resolve, reject) => {
             if (!this.wallClientMap.has(name)) {
-                reject(`Wall '${name}' does not have any clients`);
+                console.warn(`Wall '${name}' does not have any clients`);
+                resolve([]);
             }
             resolve(this.wallClientMap.get(name));
         });

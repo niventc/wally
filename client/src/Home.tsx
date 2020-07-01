@@ -1,5 +1,5 @@
 import React, { Component, Dispatch } from "react";
-import { Navbar, Nav, FormControl, Card, Button, Alert, Modal, ButtonGroup } from "react-bootstrap";
+import { Navbar, Nav, FormControl, Card, Button, Alert, Modal, ButtonGroup, NavDropdown } from "react-bootstrap";
 import { User as UserModel, CreateWall, JoinWall, Message, WallState, DeleteWall } from "wally-contract";
 import { useParams, Switch, Route, Redirect } from "react-router-dom";
 
@@ -8,12 +8,16 @@ import { connect, useSelector, useDispatch } from "react-redux";
 import User from "./User";
 import { SendWrapper } from "./webSocket.middleware";
 import { WallReducerState } from "./wall.reducer";
-import { HomeReducerState } from "./home.reducer";
+import { HomeReducerState, RemoveWall } from "./home.reducer";
 import { componentDidMountChanges, useTraceUpdate } from "./utils";
+
+import html2canvas from 'html2canvas';
+import moment from 'moment';
 
 interface HomeState {
     wallName: string;
     showAbout: boolean;
+    showBanner: boolean;
 }
 
 interface WallProps {
@@ -44,6 +48,7 @@ interface DispatchFromProps {
     createWall: (id: string) => void,
     joinWall: (id: string) => void,
     toggleSideBar: () => void,
+    removeWall: (name: string) => void,
     deleteWall: (id: string) => void
 }
 
@@ -53,15 +58,23 @@ export default connect<WallProps, DispatchFromProps>(
         createWall: (id: string) => dispatch(new SendWrapper(new CreateWall(id))),
         joinWall: (id: string) => dispatch(new SendWrapper(new JoinWall(id))),
         toggleSideBar: () => dispatch({type: "ToggleSideBar"}),
-        deleteWall: (id: string) => dispatch(new SendWrapper(new DeleteWall(id))),
+        removeWall: (name: string) => dispatch({...new RemoveWall(name)}),
+        deleteWall: (name: string) => dispatch(new SendWrapper(new DeleteWall(name))),
     })
 )(
 class Home extends Component<DispatchFromProps & WallProps> {
 
     public state: HomeState = {
         wallName: '',
-        showAbout: false
+        showAbout: false,
+        showBanner: false
     };
+
+    public componentDidMount(): void {
+        if (process.env.REACT_APP_BANNER) {
+            this.setState({...this.state, showBanner: true});
+        }
+    }
 
     public componentDidUpdate(prevProps: any, prevState: any): void {
         componentDidMountChanges(this.props, prevProps, this.state, prevState);
@@ -81,6 +94,55 @@ class Home extends Component<DispatchFromProps & WallProps> {
 
     public deleteWall(wallName: string): void {
         this.props.deleteWall(wallName);
+    }
+
+    private getServerBaseUrl(): string {
+        if (process.env.NODE_ENV === "development") {
+            // local development, environment variables are set at build time so can't overwrite in production
+            return "http://localhost:5000/";
+        }
+        return window.location.protocol.toLowerCase() + "//" + window.location.host + "/";
+    }
+
+    public exportWallAsJson(name: string): void {
+        let element = document.createElement('a');
+        // element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(this.props.wall.wall));
+        element.setAttribute('target', 'blank');
+        element.setAttribute('href', this.getServerBaseUrl() + "api/wall/" + escape(name))
+        element.setAttribute('download', name + ".json");
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+    }
+
+    public getDownloadUrl(name: string): string {
+        return this.getServerBaseUrl() + "api/wall/" + escape(name);
+    }
+
+    public getWallImage(name: string): void {
+        const wallElement = document.getElementById("wall");
+        if (wallElement) {
+            html2canvas(wallElement, {backgroundColor: this.props.user.useNightMode ? '#282c34' : 'white', width: wallElement.scrollWidth, height: wallElement.scrollHeight}).then(canvas => {
+                let element = document.createElement('a');
+                
+                element.setAttribute('href', canvas.toDataURL());
+                element.setAttribute('download', name + "-" + moment().format("YYYYMMDD-HHmmSS") + ".png");
+                element.style.display = 'none';
+                document.body.appendChild(element);
+        
+                element.click();
+        
+                document.body.removeChild(element);
+            });
+        }
+    }
+
+    public isCurrentWall(name: string): boolean {
+        return name === this.props.wall?.wall?.name;
     }
 
     public render(): JSX.Element {
@@ -114,15 +176,38 @@ class Home extends Component<DispatchFromProps & WallProps> {
                                     <Nav.Link href={"/" + escape(w)}>
                                         {w}
                                     </Nav.Link>
-                                    <Button type="button"
-                                            title="Delete wall" 
-                                            variant={this.props.user.useNightMode ? 'dark' : 'light'}
-                                            onClick={() => this.deleteWall(w)}>
-                                        <svg className="bi bi-trash" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
-                                            <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
-                                        </svg>
-                                    </Button>
+                                    <NavDropdown title="" id={w + "-dropdown"}>                                        
+                                        <NavDropdown.Item disabled={!this.isCurrentWall(w)} onClick={() => this.getWallImage(w)}>
+                                            <svg className="bi bi-card-image" style={{marginRight: 12}} width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                <path fillRule="evenodd" d="M14.5 3h-13a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5zm-13-1A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13z"/>
+                                                <path d="M10.648 7.646a.5.5 0 0 1 .577-.093L15.002 9.5V13h-14v-1l2.646-2.354a.5.5 0 0 1 .63-.062l2.66 1.773 3.71-3.71z"/>
+                                                <path fillRule="evenodd" d="M4.502 7a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+                                            </svg>
+                                            Capture Image { this.isCurrentWall(w) ? '' : '(join wall to enable)'}
+                                        </NavDropdown.Item>
+                                        <NavDropdown.Item href={this.getDownloadUrl(w)} download={w + ".json"}>
+                                            <svg className="bi bi-download" style={{marginRight: 12}} width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                <path fillRule="evenodd" d="M.5 8a.5.5 0 0 1 .5.5V12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5a.5.5 0 0 1 1 0V12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8.5A.5.5 0 0 1 .5 8z"/>
+                                                <path fillRule="evenodd" d="M5 7.5a.5.5 0 0 1 .707 0L8 9.793 10.293 7.5a.5.5 0 1 1 .707.707l-2.646 2.647a.5.5 0 0 1-.708 0L5 8.207A.5.5 0 0 1 5 7.5z"/>
+                                                <path fillRule="evenodd" d="M8 1a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0v-8A.5.5 0 0 1 8 1z"/>
+                                            </svg>
+                                            Export (JSON)
+                                        </NavDropdown.Item>
+                                        <NavDropdown.Item onClick={() => this.props.removeWall(w)}>
+                                            <svg className="bi bi-x" style={{marginRight: 12}} width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                <path fillRule="evenodd" d="M11.854 4.146a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708-.708l7-7a.5.5 0 0 1 .708 0z"/>
+                                                <path fillRule="evenodd" d="M4.146 4.146a.5.5 0 0 0 0 .708l7 7a.5.5 0 0 0 .708-.708l-7-7a.5.5 0 0 0-.708 0z"/>
+                                            </svg>
+                                            Remove Wall
+                                        </NavDropdown.Item>
+                                        <NavDropdown.Item onClick={() => this.deleteWall(w)}>
+                                            <svg className="bi bi-trash" style={{marginRight: 12}} width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M5.5 5.5A.5.5 0 016 6v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm2.5 0a.5.5 0 01.5.5v6a.5.5 0 01-1 0V6a.5.5 0 01.5-.5zm3 .5a.5.5 0 00-1 0v6a.5.5 0 001 0V6z"/>
+                                                <path fillRule="evenodd" d="M14.5 3a1 1 0 01-1 1H13v9a2 2 0 01-2 2H5a2 2 0 01-2-2V4h-.5a1 1 0 01-1-1V2a1 1 0 011-1H6a1 1 0 011-1h2a1 1 0 011 1h3.5a1 1 0 011 1v1zM4.118 4L4 4.059V13a1 1 0 001 1h6a1 1 0 001-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z" clipRule="evenodd"/>
+                                            </svg>
+                                            Delete Wall
+                                        </NavDropdown.Item>
+                                    </NavDropdown>
                                 </div>
                             )}
                         </Nav>
@@ -210,7 +295,22 @@ class Home extends Component<DispatchFromProps & WallProps> {
 
                         <a href="http://github.com/niventc/wally" rel="noopener noreferrer" target="_blank">http://github.com/niventc/wally</a>
                     </Modal.Body>
-                </Modal>              
+                </Modal>
+
+                <Modal size="sm"
+                       className={this.props.user.useNightMode ? "dark-modal" : "light-modal"}
+                       show={this.state.showBanner}
+                       onHide={() => false}
+                       aria-labelledby="contained-modal-title-vcenter"
+                       centered>
+                    <Modal.Body style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>                        
+                        <p>
+                            {process.env.REACT_APP_BANNER}
+                        </p>
+
+                        <Button onClick={() => this.setState({...this.state, showBanner: false})}>I understand</Button>
+                    </Modal.Body>
+                </Modal>          
 
             </div>
         )
