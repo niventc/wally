@@ -1,4 +1,4 @@
-import { Id } from 'model';
+import { Id } from './id';
 
 export class Image implements Id {    
     constructor(

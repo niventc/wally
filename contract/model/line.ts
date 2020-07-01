@@ -1,5 +1,6 @@
+import { Id } from './id';
 
-export class Line {    
+export class Line implements Id  {    
     constructor(
         public _id: string,
         public points: Array<[number, number]>,

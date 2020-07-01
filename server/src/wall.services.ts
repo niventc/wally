@@ -22,11 +22,11 @@ export class WallService {
     public async getWall(name: string): Promise<WallState> {
         const wall = await this.wallStore.getWall(name);
 
-        const lines = await this.lineStore.getLines(wall.lines);
+        const lines = await this.lineStore.getItems(wall.lines);
         lines.filter(async line => {
             if (line.points.length < 2 || !line.colour) {
                 await this.wallStore.removeLine(name, line._id);
-                await this.lineStore.deleteLine(line._id);
+                await this.lineStore.deleteItem(line._id);
                 return false;
             }
             return true;

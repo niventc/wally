@@ -1,4 +1,5 @@
-import { Id } from 'model';
+import { Id } from './id';
+
 
 export class Data implements Id {    
     constructor(
