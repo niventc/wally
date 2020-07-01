@@ -2,7 +2,7 @@ import * as  DataStore from 'nedb';
 import { Id } from 'wally-contract';
 
 export class Store<T extends Id> {
-    private dataStore: DataStore<T>;
+    public dataStore: DataStore<T>;
 
     constructor(private name: string, private compactionIntervalSeconds: number) {
         const directory = (process.env.NEDB_ROOT_DIR ? process.env.NEDB_ROOT_DIR : "./store");

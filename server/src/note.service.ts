@@ -26,10 +26,6 @@ export class NoteService {
         ws.on('message', async (data: string) => {
             // console.log("Received", data);
             const message = JSON.parse(data) as Message;
-
-            if (message.type !== NewImage.name) {
-                console.log("Received", message);
-            }
             
             switch (message.type) {
                 case UpdateUser.name:
@@ -64,7 +60,7 @@ export class NoteService {
                     if (await this.wallStore.doesWallExist(deleteWall.name)) {
                         const wall = await this.wallStore.getWall(deleteWall.name);
 
-                        wall.lines.forEach(l => this.lineStore.deleteLine(l));
+                        wall.lines.forEach(l => this.lineStore.deleteItem(l));
                         wall.notes.forEach(n => this.noteStore.deleteItem(n));
 
                         await this.wallStore.deleteWall(deleteWall.name);
@@ -92,7 +88,7 @@ export class NoteService {
 
                         const clients = await this.wallStore.addClient(joinWall.name, wsc.identity);       
 
-                        const lines = await this.lineStore.getLines(joinedWall.lines);
+                        const lines = await this.lineStore.getItems(joinedWall.lines);
                         const notes = await this.noteStore.getItems(joinedWall.notes);
                         const images = await this.imageStore.getItems(joinedWall.images);
                         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
@@ -170,7 +166,7 @@ export class NoteService {
 
                 case NewLine.name:
                     const newLine = message as NewLine;
-                    this.lineStore.addLine(newLine.line);
+                    this.lineStore.addItem(newLine.line);
                     this.wallStore.addLine(newLine.wallName, newLine.line._id);
                     this.sendToWallUsers(newLine.wallName, newLine);
                     break;
@@ -187,7 +183,7 @@ export class NoteService {
 
                 case DeleteLine.name:
                     const deleteLine = message as DeleteLine;
-                    this.lineStore.deleteLine(deleteLine.lineId);
+                    this.lineStore.deleteItem(deleteLine.lineId);
                     this.wallStore.removeLine(deleteLine.wallName, deleteLine.lineId);
                     this.sendToWallUsers(deleteLine.wallName, deleteLine);
                     break;
