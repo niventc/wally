@@ -10,6 +10,7 @@ import { WebSocketClient, ClientService, WebSocketIdentity } from './client.serv
 import { UserStore } from './store/user.store';
 import { UserConnected, UserLeftWall } from 'wally-contract';
 import { LineStore } from './store/line.store';
+import { ImageStore } from './store/image.store';
 import { WallController } from './api/wall.controller';
 import { WallService } from './wall.services';
 
@@ -25,6 +26,7 @@ class Server {
     private wallStore = new WallStore();
     private noteStore = new NoteStore();
     private lineStore = new LineStore();
+    private imageStore = new ImageStore();
 
     private wallService = new WallService(this.lineStore, this.noteStore, this.userStore, this.wallStore);
 
@@ -55,7 +57,7 @@ class Server {
 
     private initializeWebSocket(app: express.Application): express.Application {
         const wsInstance = expressWs(app);
-        const noteService = new NoteService(this.clientService, this.userStore, this.wallStore, this.noteStore, this.lineStore);
+        const noteService = new NoteService(this.clientService, this.userStore, this.wallStore, this.noteStore, this.lineStore, this.imageStore);
 
         wsInstance.app.ws('/ws', noteService.onWebSocket);
 

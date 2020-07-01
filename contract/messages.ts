@@ -1,4 +1,4 @@
-import { Note, User, Line } from "./model";
+import { Note, User, Line, Image } from "./model";
 
 export class Message {
     type: string;
@@ -52,6 +52,7 @@ export class WallState implements Message {
         public lines: Array<Line>,
         public notes: Array<Note>, 
         public users: Array<User>,
+        public images: Array<Image>,
         // user id to note id
         public selectedNotes: { [key: string] : string }
     ) {
@@ -69,6 +70,30 @@ export class NewNote implements Message {
     type = "NewNote";
 
     constructor (public wallName: string, public note: Note) {
+    }
+}
+
+export class NewImage implements Message {
+    type = "NewImage";
+
+    constructor (public wallName: string, public image: Image) {
+    }
+}
+
+export class UpdateImage implements Message {
+    type = "UpdateImage";
+
+    constructor (public wallName: string, public imageId: string, public image: Partial<Image>) {
+    }
+}
+
+export class DeleteImage implements Message {
+    type = "DeleteImage";
+
+    constructor(
+        public wallName: string,
+        public imageId: string
+    ) {
     }
 }
 
