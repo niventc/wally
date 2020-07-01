@@ -1,3 +1,5 @@
+set -e
+
 cd ./contract
 npm ci
 npm run build
