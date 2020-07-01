@@ -1,11 +1,13 @@
 import { WebsocketRequestHandler } from "express-ws";
-import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall, DeleteNote, NewLine, UpdateLine, DeleteLine, Line, DeleteWall } from "wally-contract";
+import { Message, NewNote, MoveNote, UpdateNoteText, SelectNote, CreateWall, JoinWall, WallState, WallyError, UpdateUser, User, UserJoinedWall, DeleteNote, NewLine, UpdateLine, DeleteLine, Line, DeleteWall, NewImage, UpdateImage, DeleteImage } from "wally-contract";
 
 import { NoteStore } from './store/note.store';
 import { WallStore } from './store/wall.store';
 import { UserStore } from './store/user.store';
 import { WebSocketClient, ClientService } from './client.service';
 import { LineStore } from './store/line.store';
+import { ImageStore } from './store/image.store';
+import { DataStore } from './store/data.store';
 
 export class NoteService {
 
@@ -14,14 +16,15 @@ export class NoteService {
         private userStore: UserStore,
         private wallStore: WallStore,
         private noteStore: NoteStore,
-        private lineStore: LineStore
+        private lineStore: LineStore,
+        private imageStore: ImageStore,
+        private dataStore: DataStore
     ) {}
 
     public onWebSocket: WebsocketRequestHandler = (ws, req, next): void => {
         const wsc = <WebSocketClient><unknown>ws;
         ws.on('message', async (data: string) => {
             // console.log("Received", data);
-
             const message = JSON.parse(data) as Message;
             
             switch (message.type) {
@@ -48,7 +51,7 @@ export class NoteService {
                         const clients = await this.wallStore.addClient(createWall.name, wsc.identity); 
                         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
 
-                        ws.send(JSON.stringify(new WallState(wall.name, [], [], users, {})));
+                        ws.send(JSON.stringify(new WallState(wall.name, [], [], users, [], {})));
                     }
                     break;
 
@@ -57,8 +60,8 @@ export class NoteService {
                     if (await this.wallStore.doesWallExist(deleteWall.name)) {
                         const wall = await this.wallStore.getWall(deleteWall.name);
 
-                        wall.lines.forEach(l => this.lineStore.deleteLine(l));
-                        wall.notes.forEach(n => this.noteStore.deleteNote(n));
+                        wall.lines.forEach(l => this.lineStore.deleteItem(l));
+                        wall.notes.forEach(n => this.noteStore.deleteItem(n));
 
                         await this.wallStore.deleteWall(deleteWall.name);
 
@@ -85,8 +88,9 @@ export class NoteService {
 
                         const clients = await this.wallStore.addClient(joinWall.name, wsc.identity);       
 
-                        const lines = await this.lineStore.getLines(joinedWall.lines);
-                        const notes = await this.noteStore.getNotes(joinedWall.notes);
+                        const lines = await this.lineStore.getItems(joinedWall.lines);
+                        const notes = await this.noteStore.getItems(joinedWall.notes);
+                        const images = await this.imageStore.getItems(joinedWall.images);
                         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
                         const selected = {};
                         users.forEach(u => {
@@ -96,7 +100,7 @@ export class NoteService {
                             }
                         });
 
-                        ws.send(JSON.stringify(new WallState(joinedWall.name, lines, notes, users, selected)));
+                        ws.send(JSON.stringify(new WallState(joinedWall.name, lines, notes, users,images, selected)));
 
                         const otherUsers = clients.filter(c => c.uuid !== wsc.identity.uuid).map(c => c.uuid);
                         const otherInstances = this.clientService.getInstances(otherUsers);
@@ -106,22 +110,44 @@ export class NoteService {
                     }
                     break;
 
+                case NewImage.name:
+                    const newImage = message as NewImage;
+                    this.dataStore.addItem({_id: newImage.image._id, data: newImage.data});
+                    this.imageStore.addItem(newImage.image);
+                    this.wallStore.addImage(newImage.wallName, newImage.image._id);
+                    this.sendToWallUsers(newImage.wallName, newImage, wsc.identity.uuid);
+                    break;
+
+                case UpdateImage.name:
+                    const updateImage = message as UpdateImage;
+                    this.imageStore.updateItem(updateImage.imageId, updateImage.image);
+                    this.sendToWallUsers(updateImage.wallName, updateImage, wsc.identity.uuid);                  
+                    break;
+
+                case DeleteImage.name:
+                    const deleteImage = message as DeleteImage;
+                    this.dataStore.deleteItem(deleteImage.imageId);
+                    this.wallStore.removeImage(deleteImage.wallName, deleteImage.imageId);
+                    this.imageStore.deleteItem(deleteImage.imageId);
+                    this.sendToWallUsers(deleteImage.wallName, deleteImage);
+                    break;
+
                 case NewNote.name:
                     const newNote = message as NewNote;
-                    this.noteStore.addNote(newNote.note);
+                    this.noteStore.addItem(newNote.note);
                     this.wallStore.addNote(newNote.wallName, newNote.note._id);
                     this.sendToWallUsers(newNote.wallName, newNote, wsc.identity.uuid);
                     break;
 
                 case MoveNote.name:
                     const moveNote = message as MoveNote;
-                    this.noteStore.updateNote(moveNote.noteId, { x: moveNote.x, y: moveNote.y });
+                    this.noteStore.updateItem(moveNote.noteId, { x: moveNote.x, y: moveNote.y });
                     this.sendToWallUsers(moveNote.wallName, moveNote, wsc.identity.uuid);                  
                     break;
 
                 case UpdateNoteText.name:
                     const updateNoteText = message as UpdateNoteText;
-                    this.noteStore.updateNote(updateNoteText.noteId, { text: updateNoteText.text });
+                    this.noteStore.updateItem(updateNoteText.noteId, { text: updateNoteText.text });
                     this.sendToWallUsers(updateNoteText.wallName, updateNoteText, wsc.identity.uuid);
                     break;
 
@@ -134,13 +160,13 @@ export class NoteService {
                 case DeleteNote.name:
                     const deleteNote = message as DeleteNote;
                     this.wallStore.removeNote(deleteNote.wallName, deleteNote.noteId);
-                    this.noteStore.deleteNote(deleteNote.noteId);
+                    this.noteStore.deleteItem(deleteNote.noteId);
                     this.sendToWallUsers(deleteNote.wallName, deleteNote);
                     break;
 
                 case NewLine.name:
                     const newLine = message as NewLine;
-                    this.lineStore.addLine(newLine.line);
+                    this.lineStore.addItem(newLine.line);
                     this.wallStore.addLine(newLine.wallName, newLine.line._id);
                     this.sendToWallUsers(newLine.wallName, newLine);
                     break;
@@ -157,7 +183,7 @@ export class NoteService {
 
                 case DeleteLine.name:
                     const deleteLine = message as DeleteLine;
-                    this.lineStore.deleteLine(deleteLine.lineId);
+                    this.lineStore.deleteItem(deleteLine.lineId);
                     this.wallStore.removeLine(deleteLine.wallName, deleteLine.lineId);
                     this.sendToWallUsers(deleteLine.wallName, deleteLine);
                     break;

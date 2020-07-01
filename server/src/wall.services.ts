@@ -3,10 +3,12 @@ import { WallState } from 'wally-contract';
 import { LineStore } from './store/line.store';
 import { NoteStore } from './store/note.store';
 import { UserStore } from './store/user.store';
+import { ImageStore } from './store/image.store';
 
 export class WallService {
 
     constructor(
+        private imageStore: ImageStore,
         private lineStore: LineStore,
         private noteStore: NoteStore,
         private userStore: UserStore,
@@ -30,7 +32,8 @@ export class WallService {
             return true;
         });
 
-        const notes = await this.noteStore.getNotes(wall.notes);
+        const notes = await this.noteStore.getItems(wall.notes);
+        const images = await this.imageStore.getItems(wall.images);
         
         const clients = await this.wallStore.getClients(name); 
         const users = await this.userStore.getClientsUsers(clients.map(c => c.clientId));
@@ -43,6 +46,6 @@ export class WallService {
             }
         });
 
-        return new WallState(name, lines, notes, users, selected);
+        return new WallState(name, lines, notes, users, images, selected);
     }
 }
