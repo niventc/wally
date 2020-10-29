@@ -24,8 +24,8 @@ jobs:
       id: get_version
       run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
 
-    - uses: azure/webapps-container-deploy@v1
-      if: github.ref
+    - name: Azure WebApp
+      uses: azure/webapps-deploy@v2
       with:
         app-name: 'wally'
         images: 'niventc/wally:${{ steps.get_version.outputs.VERSION }}'
