@@ -103,6 +103,23 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 }
             });
 
+            const paste = fromEvent<ClipboardEvent>(window, "paste");
+            paste.subscribe(e => {
+                const items = e.clipboardData?.items
+                if (items) {
+                    for (let i = 0; i < items.length; i++) {
+                        const item = items[i];
+                        console.log(item.type, item.kind);
+                        if (item.kind === "file") {
+                            const file = item.getAsFile();
+                            if (file) {
+                                this.handleFile(file, 50, 50);
+                            }
+                        }
+                    }
+                }
+            })
+
             const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");
             const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
             pointerdown.subscribe(e => {
@@ -146,41 +163,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
 
                 if (files) {
                     Array.from(files).forEach(file => {
-                        console.log(file);
-
-                        if (file.type.startsWith("image/")) {
-                            let reader = new FileReader()
-                            reader.readAsDataURL(file);
-                            reader.onloadend = () => {
-                                if (this.wallRef.current) {
-                                    const bounding = this.wallRef.current.getBoundingClientRect();
-
-                                    const result = reader.result;
-                                    if (result && typeof result === "string") {
-
-                                        const img = new Image();
-                                        img.onload = () => {
-                                            this.props.newImage(
-                                                this.props.wall.name, 
-                                                {
-                                                    _id: uuidv4(),
-                                                    name: file.name,
-                                                    x: e.clientX - bounding.left,
-                                                    y: e.clientY - bounding.top,
-                                                    zIndex: 0,
-                                                    originalWidth: img.width,
-                                                    originalHeight: img.height,
-                                                    width: img.width,
-                                                    height: img.height
-                                                },                                                
-                                                result
-                                            );
-                                        };
-                                        img.src = result;
-                                    }
-                                }
-                            };
-                        }
+                        this.handleFile(file, e.clientX, e.clientY);
                     });
                 }
             }
@@ -297,6 +280,44 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         }
                     }
                 });
+        }
+    }
+
+    public handleFile(file: File, x: number, y: number): void {        
+        console.log(file);
+
+        if (file.type.startsWith("image/")) {
+            let reader = new FileReader()
+            reader.readAsDataURL(file);
+            reader.onloadend = () => {
+                if (this.wallRef.current) {
+                    const bounding = this.wallRef.current.getBoundingClientRect();
+
+                    const result = reader.result;
+                    if (result && typeof result === "string") {
+
+                        const img = new Image();
+                        img.onload = () => {
+                            this.props.newImage(
+                                this.props.wall.name, 
+                                {
+                                    _id: uuidv4(),
+                                    name: file.name,
+                                    x: x - bounding.left,
+                                    y: y - bounding.top,
+                                    zIndex: 0,
+                                    originalWidth: img.width,
+                                    originalHeight: img.height,
+                                    width: img.width,
+                                    height: img.height
+                                },                                                
+                                result
+                            );
+                        };
+                        img.src = result;
+                    }
+                }
+            };
         }
     }
 
