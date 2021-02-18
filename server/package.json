@@ -21,9 +21,9 @@
   "devDependencies": {
     "@types/nedb": "^1.8.9",
     "ts-loader": "^6.2.2",
-    "ts-node-dev": "^1.0.0-pre.44",
+    "ts-node-dev": "^1.1.1",
     "typescript": "^3.8.3",
-    "webpack": "^4.42.1",
+    "webpack": "4.44.2",
     "webpack-cli": "^3.3.11"
   },
   "dependencies": {
