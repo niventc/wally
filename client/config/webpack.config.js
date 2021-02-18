@@ -231,8 +231,8 @@ module.exports = function (webpackEnv) {
     },
     optimization: {
       // Ejected and hacking to false...
-      // minimize: false,      
-      minimize: isEnvProduction,
+      minimize: false,      
+      // minimize: isEnvProduction,
       minimizer: [
         // This is only used in production mode
         new TerserPlugin({
