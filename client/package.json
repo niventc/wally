@@ -60,7 +60,7 @@
     "react-app-polyfill": "^1.0.6",
     "react-bootstrap": "^1.0.0",
     "react-color": "^2.18.0",
-    "react-dev-utils": "^11.0.2",
+    "react-dev-utils": "^11.0.4",
     "react-dom": "^16.13.1",
     "react-linkify": "^1.0.0-alpha",
     "react-redux": "^7.2.0",
