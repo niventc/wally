@@ -132,9 +132,10 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
 
             const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");            
             pointerdown.subscribe(e => {
-                if (this.wallRef.current && (this.state.selectedMode)) {
+                if (this.state.selectedMode) {
+                    // This should never happen so dummy obj to avoid null check
+                    const bounding = this.wallRef?.current?.getBoundingClientRect() ?? new DOMRect();
                     const pointerDown = e as PointerEvent;
-                    const bounding = this.wallRef.current.getBoundingClientRect();
                     const startingPoint: [number, number] = [
                         pointerDown.clientX - bounding.left - this.state.wallOrigin[0], 
                         pointerDown.clientY - bounding.top - this.state.wallOrigin[1]
@@ -244,18 +245,46 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     bufferTime(50),
                     filter(moves => moves.length > 0),
                     map(moves => {
-                        return moves.reduce((acc, val) => {
-                            return { clientX: val.clientX, clientY: val.clientY, moveX: acc.moveX + val.moveX, moveY: acc.moveY + val.moveY, shiftKey: val.shiftKey } as PointerMove;
-                        });
+                        // This should never happen so dummy obj to avoid null check
+                        const bounding = this.wallRef?.current?.getBoundingClientRect() ?? new DOMRect();
+                        // Remember to provide initial value otherwise single element in array is returned and not mapped
+                        return moves
+                            .reduce((acc, val) => {
+                                return { 
+                                    clientX: val.clientX - bounding.left - this.state.wallOrigin[0], 
+                                    clientY: val.clientY - bounding.top - this.state.wallOrigin[1], 
+                                    moveX: acc.moveX + val.moveX, 
+                                    moveY: acc.moveY + val.moveY, 
+                                    shiftKey: val.shiftKey 
+                                } as PointerMove;
+                            }, { 
+                                clientX: moves[0].clientX - bounding.left - this.state.wallOrigin[0], 
+                                clientY: moves[0].clientY - bounding.top - this.state.wallOrigin[1], 
+                                moveX: moves[0].moveX, 
+                                moveY: moves[0].moveY, 
+                                shiftKey: moves[0].shiftKey 
+                            } as PointerMove);
                     }),
                     map(mousemove => {
                         if ((this.state.selectedMode === "line" || this.state.selectedMode === "rectangle") && this.state.startingPoint && mousemove.shiftKey) {
                             if (Math.abs(this.state.startingPoint[0] - mousemove.clientX) < 50) {
                                 // Straight vertical line, x doesn't change, y does
-                                return { clientX: this.state.startingPoint[0], clientY: mousemove.clientY, moveX: 0, moveY: mousemove.clientY, shiftKey: mousemove.shiftKey } as PointerMove;
+                                return { 
+                                    clientX: this.state.startingPoint[0], 
+                                    clientY: mousemove.clientY, 
+                                    moveX: 0, 
+                                    moveY: mousemove.moveY, 
+                                    shiftKey: mousemove.shiftKey 
+                                } as PointerMove;
                             } else if (Math.abs(this.state.startingPoint[1] - mousemove.clientY) < 50) {
                                 // Straight horizontal line, x changes, y doesn't
-                                return { clientX: mousemove.clientX, clientY: this.state.startingPoint[1], moveX: mousemove.moveX, moveY: 0, shiftKey: mousemove.shiftKey } as PointerMove;
+                                return { 
+                                    clientX: mousemove.clientX, 
+                                    clientY: this.state.startingPoint[1], 
+                                    moveX: mousemove.moveX, 
+                                    moveY: 0, 
+                                    shiftKey: mousemove.shiftKey 
+                                } as PointerMove;
                             } else {                                        
                                 let xDiff = mousemove.clientX - this.state.startingPoint[0];
                                 let yDiff = mousemove.clientY - this.state.startingPoint[1];
@@ -295,59 +324,56 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     tap(() => this.forceUpdate())
                 )
                 .subscribe(e => {
-                    if (this.wallRef.current) {
-                        const bounding = this.wallRef.current.getBoundingClientRect();
-                        if (e && this.state.selectedNoteId) {
-                            this.props.moveNote(
-                                this.props.wall.name, 
-                                this.state.selectedNoteId, 
-                                e.clientX - bounding.left - this.state.wallOrigin[0], 
-                                e.clientY - bounding.top - this.state.wallOrigin[1]
-                            );
-                        } else if (e && this.state.selectedImageId) {
-                            this.props.moveImage(
-                                this.props.wall.name, 
-                                this.state.selectedImageId, 
-                                e.clientX - bounding.left - this.state.wallOrigin[0], 
-                                e.clientY - bounding.top - this.state.wallOrigin[1]
-                            );
-                        } else if (e && this.state.selectedLineId) {
-                            if (this.state.selectedMode === "rectangle" && this.state.startingPoint) {
-                                const x = e.clientX - bounding.left - this.state.wallOrigin[0];
-                                const y = e.clientY - bounding.top - this.state.wallOrigin[1];
-                                const startX = this.state.startingPoint[0];
-                                const startY = this.state.startingPoint[1];
+                    if (e && this.state.selectedNoteId) {
+                        this.props.moveNote(
+                            this.props.wall.name, 
+                            this.state.selectedNoteId, 
+                            e.clientX, 
+                            e.clientY
+                        );
+                    } else if (e && this.state.selectedImageId) {
+                        this.props.moveImage(
+                            this.props.wall.name, 
+                            this.state.selectedImageId, 
+                            e.clientX, 
+                            e.clientY
+                        );
+                    } else if (e && this.state.selectedLineId) {
+                        if (this.state.selectedMode === "rectangle" && this.state.startingPoint) {
+                            const x = e.clientX;
+                            const y = e.clientY;
+                            const startX = this.state.startingPoint[0];
+                            const startY = this.state.startingPoint[1];
 
-                                const topRight = [x, startY] as [number, number];
-                                const bottomRight = [x, y] as [number, number];
-                                const bottomLeft = [startX, y] as [number, number];
-                                const topLeft = [startX, startY] as [number, number];
-                                this.props.updateLine(
-                                    this.props.wall.name, 
-                                    this.state.selectedLineId, 
-                                    [
-                                        topRight, 
-                                        bottomRight, 
-                                        bottomLeft, 
-                                        topLeft
-                                    ], 
-                                    true
-                                );
-                            } else {
-                                this.props.updateLine(
-                                    this.props.wall.name, 
-                                    this.state.selectedLineId, 
-                                    [[e.clientX - bounding.left - this.state.wallOrigin[0], e.clientY - bounding.top - this.state.wallOrigin[1]]], 
-                                    this.state.selectedMode === "line"
-                                );
-                            }
-                        } else if (e && this.state.startingPoint) {
-                            // default move the wall!
-                            this.setState({
-                                ...this.state,
-                                wallOrigin: [this.state.wallOrigin[0] + e.moveX, this.state.wallOrigin[1] + e.moveY]
-                            });
+                            const topRight = [x, startY] as [number, number];
+                            const bottomRight = [x, y] as [number, number];
+                            const bottomLeft = [startX, y] as [number, number];
+                            const topLeft = [startX, startY] as [number, number];
+                            this.props.updateLine(
+                                this.props.wall.name, 
+                                this.state.selectedLineId, 
+                                [
+                                    topRight, 
+                                    bottomRight, 
+                                    bottomLeft, 
+                                    topLeft
+                                ], 
+                                true
+                            );
+                        } else {
+                            this.props.updateLine(
+                                this.props.wall.name, 
+                                this.state.selectedLineId, 
+                                [[e.clientX, e.clientY]], 
+                                this.state.selectedMode === "line"
+                            );
                         }
+                    } else if (e && this.state.startingPoint) {
+                        // default move the wall!
+                        this.setState({
+                            ...this.state,
+                            wallOrigin: [this.state.wallOrigin[0] + e.moveX, this.state.wallOrigin[1] + e.moveY]
+                        });
                     }
                 });
         }
@@ -360,32 +386,31 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             let reader = new FileReader()
             reader.readAsDataURL(file);
             reader.onloadend = () => {
-                if (this.wallRef.current) {
-                    const bounding = this.wallRef.current.getBoundingClientRect();
+                // This should never happen so dummy obj to avoid null check
+                const bounding = this.wallRef?.current?.getBoundingClientRect() ?? new DOMRect();
 
-                    const result = reader.result;
-                    if (result && typeof result === "string") {
+                const result = reader.result;
+                if (result && typeof result === "string") {
 
-                        const img = new Image();
-                        img.onload = () => {
-                            this.props.newImage(
-                                this.props.wall.name, 
-                                {
-                                    _id: uuidv4(),
-                                    name: file.name,
-                                    x: x - bounding.left,
-                                    y: y - bounding.top,
-                                    zIndex: 0,
-                                    originalWidth: img.width,
-                                    originalHeight: img.height,
-                                    width: img.width,
-                                    height: img.height
-                                },                                                
-                                result
-                            );
-                        };
-                        img.src = result;
-                    }
+                    const img = new Image();
+                    img.onload = () => {
+                        this.props.newImage(
+                            this.props.wall.name, 
+                            {
+                                _id: uuidv4(),
+                                name: file.name,
+                                x: x - bounding.left,
+                                y: y - bounding.top,
+                                zIndex: 0,
+                                originalWidth: img.width,
+                                originalHeight: img.height,
+                                width: img.width,
+                                height: img.height
+                            },                                                
+                            result
+                        );
+                    };
+                    img.src = result;
                 }
             };
         }
