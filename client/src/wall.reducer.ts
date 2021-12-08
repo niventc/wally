@@ -129,7 +129,7 @@ export function wallReducer(
                     }
                 }
                 // TODO this is a bit cheeky, should really recreate and replace line, right?
-                return { ...state };
+                return { ...state, wall: {...state.wall, lines: [...state.wall.lines ]} };
 
             case DeleteLine.name:
                 const deleteLine = action as DeleteLine;

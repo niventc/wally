@@ -7,7 +7,7 @@ import './wall.css';
 import { NewNote, Message, Note, UpdateNoteText, MoveNote, SelectNote, User, WallState, DeleteNote, NewLine, UpdateLine, Line, DeleteLine, Image as ImageCard, NewImage, DeleteImage, UpdateImage } from "wally-contract";
 import { connect } from "react-redux";
 import { fromEvent, merge } from "rxjs";
-import { startWith, throttleTime, map, tap } from "rxjs/operators";
+import { startWith, map, tap, pairwise, filter, bufferTime } from "rxjs/operators";
 import { SendWrapper } from "./webSocket.middleware";
 import { SketchPicker } from "react-color";
 import { UserCoin } from "./UserCoin";
@@ -18,6 +18,14 @@ import { getContrastColour, getServerBaseUrl } from "./utils";
 
 interface WallProps {
     wall: WallState;
+}
+
+interface PointerMove {
+    clientX: number;
+    clientY: number;
+    moveX: number;
+    moveY: number;
+    shiftKey: boolean;
 }
 
 interface WallComponentState {
@@ -32,6 +40,7 @@ interface WallComponentState {
     showColourPicker: boolean;
     colour: string;
     lineWidth: number;
+    wallOrigin: [number, number];
 }
 
 interface StateProps {
@@ -89,7 +98,8 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         isErasing: false,
         showColourPicker: false,
         colour: 'rgb(255,0,0)',
-        lineWidth: 3
+        lineWidth: 3,
+        wallOrigin: [0, 0]
     };
     
     public wallRef = createRef<HTMLDivElement>();
@@ -120,16 +130,20 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 }
             })
 
-            const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");
-            const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
+            const pointerdown = fromEvent<PointerEvent>(this.wallRef.current, "pointerdown");            
             pointerdown.subscribe(e => {
-                if (this.wallRef.current && (this.state.selectedMode)) {
+                if (this.state.selectedMode) {
+                    // This should never happen so dummy obj to avoid null check
+                    const bounding = this.wallRef?.current?.getBoundingClientRect() ?? new DOMRect();
                     const pointerDown = e as PointerEvent;
-                    const bounding = this.wallRef.current.getBoundingClientRect();
-                    const line = new Line(uuidv4(), [[pointerDown.clientX - bounding.left, pointerDown.clientY - bounding.top]], this.state.colour, this.state.lineWidth);
+                    const startingPoint: [number, number] = [
+                        pointerDown.clientX - bounding.left - this.state.wallOrigin[0], 
+                        pointerDown.clientY - bounding.top - this.state.wallOrigin[1]
+                    ];
+                    const line = new Line(uuidv4(), [startingPoint], this.state.colour, this.state.lineWidth);
                     this.setState({
                         ...this.state,
-                        startingPoint: [pointerDown.clientX, pointerDown.clientY],
+                        startingPoint: startingPoint,
                         selectedLineId: line._id
                     });
                     this.props.newLine(this.props.wall.name, line);
@@ -138,17 +152,42 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                         ...this.state,
                         isErasing: true
                     });
+                } else {
+                    // fallback to move mode :O
+                    const pointerDown = e as PointerEvent;
+                    this.setState({
+                        ...this.state,
+                        startingPoint: [pointerDown.clientX, pointerDown.clientY]
+                    });
                 }
             });
-            pointerup.subscribe(e => {
-                this.setState({
-                    ...this.state,
-                    startingPoint: undefined,
-                    selectedLineId: undefined,
-                    selectedImageId: undefined,
-                    isErasing: false
+
+            // We want to stop doing things when our mouse leaves the browser
+            const mouseoutOfBrowser = fromEvent<PointerEvent>(document, "mouseout")
+                .pipe(
+                    filter(e => {
+                        const target: any = e.relatedTarget;
+                        return target?.nodeName === "HTML";
+                    })
+                );
+            // For now pressing escape should also stop things, we might want to refine this to cancel things instead
+            // e.g. delete the inprogress line/shape being drawn, or if nothing is happening unselect the current tool
+            const escapeKey = keyPress.pipe(filter(e => e.key === "Escape"));
+
+            const pointerup = fromEvent<PointerEvent>(this.wallRef.current, "pointerup");
+            const touchend = fromEvent<PointerEvent>(this.wallRef.current, "touchend");
+            merge(pointerup, touchend, mouseoutOfBrowser, escapeKey)
+                .subscribe(() => {
+                    this.setState({
+                        ...this.state, 
+                        selectedNoteId: undefined, 
+                        selectedImageId: undefined,                            
+                        startingPoint: undefined,
+                        selectedLineId: undefined,
+                        isErasing: false
+                    });
                 });
-            });
+
 
             let handlerFunction = (e: any) => {
                 e.preventDefault();
@@ -168,7 +207,6 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 }
             }
             let dropArea = document.getElementById('wall');
-            console.log(dropArea);
             dropArea?.addEventListener('dragenter', handlerFunction, false)
             dropArea?.addEventListener('dragleave', handlerFunction, false)
             dropArea?.addEventListener('dragover', handlerFunction, false)
@@ -181,103 +219,161 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             //     console.log(e);
             // });
 
-            const mousemove = fromEvent<PointerEvent>(this.wallRef.current, "pointermove").pipe(startWith(undefined));
-            const touchmove = fromEvent<TouchEvent>(this.wallRef.current, "touchmove").pipe(startWith(undefined));
+            const mousemove = fromEvent<PointerEvent>(this.wallRef.current, "pointermove")
+                .pipe(
+                    map(e => {
+                        return { clientX: e.clientX, clientY: e.clientY, moveX: e.movementX, moveY: e.movementY, shiftKey: e.shiftKey } as PointerMove;
+                    })
+                );
+            const touchmove = fromEvent<TouchEvent>(this.wallRef.current, "touchmove")
+                .pipe(
+                    startWith(undefined),
+                    pairwise(),
+                    map(val => {
+                        if (val[0] && val[1]) {
+                            return { clientX: val[1].touches[0].clientX, clientY: val[1].touches[0].clientY, moveX: val[1].touches[0].clientX - val[0].touches[0].clientX, moveY: val[1].touches[0].clientY - val[0].touches[0].clientY, shiftKey: val[1].shiftKey } as PointerMove;
+                        }
+                        if (this.state.startingPoint && val[1]) {
+                            return { clientX: val[1].touches[0].clientX, clientY: val[1].touches[0].clientY, moveX: val[1].touches[0].clientX - this.state.startingPoint[0], moveY: val[1].touches[0].clientY - this.state.startingPoint[1], shiftKey: val[1].shiftKey } as PointerMove;
+                        }
+                        return { clientX: val[1]?.touches[0].clientX, clientY: val[1]?.touches[0].clientY, moveX: 0, moveY: 0, shiftKey: val[1]?.shiftKey } as PointerMove;
+                    })
+                );
       
             merge(mousemove, touchmove)
                 .pipe(
-                    throttleTime(50),
-                    map(e => {
-                        if (e) {
-                            if (e.type === "pointermove") {
-                                const mousemove = e as PointerEvent;
-                                if ((this.state.selectedMode === "line" || this.state.selectedMode === "rectangle") && this.state.startingPoint && mousemove.shiftKey) {
-                                    if (Math.abs(this.state.startingPoint[0] - mousemove.clientX) < 50) {
-                                        return [this.state.startingPoint[0], mousemove.clientY];
-                                    } else if (Math.abs(this.state.startingPoint[1] - mousemove.clientY) < 50) {
-                                        return [mousemove.clientX, this.state.startingPoint[1]];
-                                    } else {                                        
-                                        let xDiff = mousemove.clientX - this.state.startingPoint[0];
-                                        let yDiff = mousemove.clientY - this.state.startingPoint[1];
+                    bufferTime(50),
+                    filter(moves => moves.length > 0),
+                    map(moves => {
+                        // This should never happen so dummy obj to avoid null check
+                        const bounding = this.wallRef?.current?.getBoundingClientRect() ?? new DOMRect();
+                        // Remember to provide initial value otherwise single element in array is returned and not mapped
+                        return moves
+                            .reduce((acc, val) => {
+                                return { 
+                                    clientX: val.clientX - bounding.left - this.state.wallOrigin[0], 
+                                    clientY: val.clientY - bounding.top - this.state.wallOrigin[1], 
+                                    moveX: acc.moveX + val.moveX, 
+                                    moveY: acc.moveY + val.moveY, 
+                                    shiftKey: val.shiftKey 
+                                } as PointerMove;
+                            }, { 
+                                clientX: moves[0].clientX - bounding.left - this.state.wallOrigin[0], 
+                                clientY: moves[0].clientY - bounding.top - this.state.wallOrigin[1], 
+                                moveX: moves[0].moveX, 
+                                moveY: moves[0].moveY, 
+                                shiftKey: moves[0].shiftKey 
+                            } as PointerMove);
+                    }),
+                    map(mousemove => {
+                        if ((this.state.selectedMode === "line" || this.state.selectedMode === "rectangle") && this.state.startingPoint && mousemove.shiftKey) {
+                            if (Math.abs(this.state.startingPoint[0] - mousemove.clientX) < 50) {
+                                // Straight vertical line, x doesn't change, y does
+                                return { 
+                                    clientX: this.state.startingPoint[0], 
+                                    clientY: mousemove.clientY, 
+                                    moveX: 0, 
+                                    moveY: mousemove.moveY, 
+                                    shiftKey: mousemove.shiftKey 
+                                } as PointerMove;
+                            } else if (Math.abs(this.state.startingPoint[1] - mousemove.clientY) < 50) {
+                                // Straight horizontal line, x changes, y doesn't
+                                return { 
+                                    clientX: mousemove.clientX, 
+                                    clientY: this.state.startingPoint[1], 
+                                    moveX: mousemove.moveX, 
+                                    moveY: 0, 
+                                    shiftKey: mousemove.shiftKey 
+                                } as PointerMove;
+                            } else {                                        
+                                let xDiff = mousemove.clientX - this.state.startingPoint[0];
+                                let yDiff = mousemove.clientY - this.state.startingPoint[1];
 
-                                        let opposite = 0;
-                                        let adjacent = 0;
-                                        if (xDiff > yDiff) {
-                                            adjacent = xDiff;
-                                            opposite = yDiff;
-                                        } else {
-                                            adjacent = yDiff;
-                                            opposite = xDiff;
-                                        }
-                                        let ratio = opposite / adjacent;
-                                        let angle = Math.atan(ratio) * (180/Math.PI);
+                                let opposite = 0;
+                                let adjacent = 0;
+                                if (xDiff > yDiff) {
+                                    adjacent = xDiff;
+                                    opposite = yDiff;
+                                } else {
+                                    adjacent = yDiff;
+                                    opposite = xDiff;
+                                }
+                                let ratio = opposite / adjacent;
+                                let angle = Math.atan(ratio) * (180/Math.PI);
 
-                                        if (Math.abs(Math.abs(angle) - 45) < 10) {
-                                            let radians = 45 * (Math.PI/180);
-                                            let tan = Math.tan(radians);
-                                            let snapOpposite = tan * adjacent;
+                                if (Math.abs(Math.abs(angle) - 45) < 10) {
+                                    let radians = 45 * (Math.PI/180);
+                                    let tan = Math.tan(radians);
+                                    let snapOpposite = tan * adjacent;
 
-                                            if ((xDiff > 0 && yDiff > 0) || (xDiff < 0 && yDiff < 0)) {
-                                                // top left and bottom right
-                                                return [this.state.startingPoint[0] + snapOpposite, mousemove.clientY];
-                                            } else if (xDiff > 0 && yDiff < 0) { 
-                                                // top right
-                                                return [mousemove.clientX, this.state.startingPoint[1] - snapOpposite];
-                                            } else if (xDiff < 0 && yDiff > 0) { 
-                                                // bottom left
-                                                return [this.state.startingPoint[0] - snapOpposite, mousemove.clientY];
-                                            }
-                                        }
+                                    if ((xDiff > 0 && yDiff > 0) || (xDiff < 0 && yDiff < 0)) {
+                                        // top left and bottom right
+                                        return { clientX: this.state.startingPoint[0] + snapOpposite, clientY: mousemove.clientY, moveX: snapOpposite, moveY: mousemove.moveY, shiftKey: mousemove.shiftKey } as PointerMove;
+                                    } else if (xDiff > 0 && yDiff < 0) { 
+                                        // top right
+                                        return { clientX: mousemove.clientX, clientY: this.state.startingPoint[1] - snapOpposite, moveX: mousemove.moveX, moveY: 1 - snapOpposite , shiftKey: mousemove.shiftKey } as PointerMove;
+                                    } else if (xDiff < 0 && yDiff > 0) { 
+                                        // bottom left
+                                        return { clientX: this.state.startingPoint[0] - snapOpposite, clientY: mousemove.clientY, moveX: 1 - snapOpposite, moveY: mousemove.moveY, shiftKey: mousemove.shiftKey } as PointerMove;
                                     }
                                 }
-                                return [mousemove.clientX, mousemove.clientY] as [number, number];
-                            } else if (e.type === "touchmove") {
-                                const touchmove = e as TouchEvent;
-                                
-                                return [touchmove.touches[0].clientX, touchmove.touches[0].clientY] as [number, number];
                             }
                         }
+                        return mousemove;
                     }),
                     tap(() => this.forceUpdate())
                 )
                 .subscribe(e => {
-                    if (this.wallRef.current) {
-                        const bounding = this.wallRef.current.getBoundingClientRect();
-                        if (e && this.state.selectedNoteId) {
-                            this.props.moveNote(this.props.wall.name, this.state.selectedNoteId, e[0] - bounding.left, e[1] - bounding.top);
-                        } else if (e && this.state.selectedImageId) {
-                            this.props.moveImage(this.props.wall.name, this.state.selectedImageId, e[0] - bounding.left, e[1] - bounding.top);
-                        } else if (e && this.state.selectedLineId) {
-                            if (this.state.selectedMode === "rectangle" && this.state.startingPoint) {
-                                const x = e[0] - bounding.left;
-                                const y = e[1] - bounding.top;
-                                const startX = this.state.startingPoint[0] - bounding.left;
-                                const startY = this.state.startingPoint[1] - bounding.top;
+                    if (e && this.state.selectedNoteId) {
+                        this.props.moveNote(
+                            this.props.wall.name, 
+                            this.state.selectedNoteId, 
+                            e.clientX, 
+                            e.clientY
+                        );
+                    } else if (e && this.state.selectedImageId) {
+                        this.props.moveImage(
+                            this.props.wall.name, 
+                            this.state.selectedImageId, 
+                            e.clientX, 
+                            e.clientY
+                        );
+                    } else if (e && this.state.selectedLineId) {
+                        if (this.state.selectedMode === "rectangle" && this.state.startingPoint) {
+                            const x = e.clientX;
+                            const y = e.clientY;
+                            const startX = this.state.startingPoint[0];
+                            const startY = this.state.startingPoint[1];
 
-                                const topRight = [x, startY] as [number, number];
-                                const bottomRight = [x, y] as [number, number];
-                                const bottomLeft = [startX, y] as [number, number];
-                                const topLeft = [startX, startY] as [number, number];
-                                this.props.updateLine(
-                                    this.props.wall.name, 
-                                    this.state.selectedLineId, 
-                                    [
-                                        topRight, 
-                                        bottomRight, 
-                                        bottomLeft, 
-                                        topLeft
-                                    ], 
-                                    true
-                                );
-                            } else {
-                                this.props.updateLine(
-                                    this.props.wall.name, 
-                                    this.state.selectedLineId, 
-                                    [[e[0] - bounding.left, e[1] - bounding.top]], 
-                                    this.state.selectedMode === "line"
-                                );
-                            }
+                            const topRight = [x, startY] as [number, number];
+                            const bottomRight = [x, y] as [number, number];
+                            const bottomLeft = [startX, y] as [number, number];
+                            const topLeft = [startX, startY] as [number, number];
+                            this.props.updateLine(
+                                this.props.wall.name, 
+                                this.state.selectedLineId, 
+                                [
+                                    topRight, 
+                                    bottomRight, 
+                                    bottomLeft, 
+                                    topLeft
+                                ], 
+                                true
+                            );
+                        } else {
+                            this.props.updateLine(
+                                this.props.wall.name, 
+                                this.state.selectedLineId, 
+                                [[e.clientX, e.clientY]], 
+                                this.state.selectedMode === "line"
+                            );
                         }
+                    } else if (e && this.state.startingPoint) {
+                        // default move the wall!
+                        this.setState({
+                            ...this.state,
+                            wallOrigin: [this.state.wallOrigin[0] + e.moveX, this.state.wallOrigin[1] + e.moveY]
+                        });
                     }
                 });
         }
@@ -290,32 +386,31 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
             let reader = new FileReader()
             reader.readAsDataURL(file);
             reader.onloadend = () => {
-                if (this.wallRef.current) {
-                    const bounding = this.wallRef.current.getBoundingClientRect();
+                // This should never happen so dummy obj to avoid null check
+                const bounding = this.wallRef?.current?.getBoundingClientRect() ?? new DOMRect();
 
-                    const result = reader.result;
-                    if (result && typeof result === "string") {
+                const result = reader.result;
+                if (result && typeof result === "string") {
 
-                        const img = new Image();
-                        img.onload = () => {
-                            this.props.newImage(
-                                this.props.wall.name, 
-                                {
-                                    _id: uuidv4(),
-                                    name: file.name,
-                                    x: x - bounding.left,
-                                    y: y - bounding.top,
-                                    zIndex: 0,
-                                    originalWidth: img.width,
-                                    originalHeight: img.height,
-                                    width: img.width,
-                                    height: img.height
-                                },                                                
-                                result
-                            );
-                        };
-                        img.src = result;
-                    }
+                    const img = new Image();
+                    img.onload = () => {
+                        this.props.newImage(
+                            this.props.wall.name, 
+                            {
+                                _id: uuidv4(),
+                                name: file.name,
+                                x: x - bounding.left,
+                                y: y - bounding.top,
+                                zIndex: 0,
+                                originalWidth: img.width,
+                                originalHeight: img.height,
+                                width: img.width,
+                                height: img.height
+                            },                                                
+                            result
+                        );
+                    };
+                    img.src = result;
                 }
             };
         }
@@ -383,17 +478,13 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         e.stopPropagation();
     }
 
-    public unselect(): void {
-        this.setState({...this.state, selectedNoteId: undefined});
-    }
-
     public getSvgFromLine(line: Array<[number, number]>): string {
         if (!line || !line[0]) {
             return '';
         }
         const first = line[0];
-        const m = `M ${first[0]} ${first[1]}`;
-        const l = line.slice(1, line.length).map(p => `L ${p[0]} ${p[1]}`);
+        const m = `M ${this.getWallX(first[0])} ${this.getWallY(first[1])}`;
+        const l = line.slice(1, line.length).map(p => `L ${this.getWallX(p[0])} ${this.getWallY(p[1])}`);
         const svg = `${m} ${l.join(' ')}`;
         return svg;
     }
@@ -426,7 +517,6 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
     public updateAndStop(e: React.PointerEvent, newState: any): void {
         e.stopPropagation();
         e.preventDefault();
-        console.log("update and stop");
         this.setState({...this.state, ...newState});
     }
 
@@ -443,7 +533,39 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                 }
             });
         });
-        return [maxX, maxY];
+        return [this.getWallX(maxX), this.getWallY(maxY)];
+    }
+
+    public getCanvasSize(): [number, number] {
+        let maxX = 0;
+        let maxY = 0;
+        this.props.wall.notes.forEach(n => {
+            if (n.x > maxX) {
+                maxX = n.x + 150;
+            }
+            if (n.y > maxY) {
+                maxY = n.y + 150;
+            }
+        });
+
+        this.props.wall.images.forEach(i => {
+            if (i.x > maxX) {
+                maxX = i.x + i.width;
+            }
+            if (i.y > maxY) {
+                maxY = i.y + i.height;
+            }
+        });
+
+        const svg = this.getSvgSize();
+        if (svg[0] > maxX) {
+            maxX = svg[0];
+        }
+        if (svg[1] > maxY) {
+            maxY = svg[1];
+        }
+
+        return [this.getWallX(maxX), this.getWallY(maxY)];
     }
 
     public updateNoteText(e: React.FormEvent<HTMLTextAreaElement>, noteId: string) {
@@ -481,22 +603,29 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
         e.preventDefault();
     }
 
+    public getWallX(x: number): number {
+        return x + this.state.wallOrigin[0];
+    }
+
+    public getWallY(y: number): number {
+        return y + this.state.wallOrigin[1];
+    }
+
     public render(): JSX.Element {
+        let canvasSize = this.getCanvasSize();
         let svgSize = this.getSvgSize();
         return (
-            <div style={{width: '100%', height: '100%'}}>
+            <div style={{width: canvasSize[0], height: canvasSize[1]}}>
 
                 <textarea id="testarea" style={{ position: 'fixed', left: -150, visibility: 'hidden', overflow: 'hidden', height: '124px', width: '124px', border: 'none', outline: 'none', resize: 'none' }}></textarea>
 
                 <div ref={this.wallRef} 
                     id="wall"
-                    style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}
-                    onTouchEnd={() => this.unselect()} 
-                    onPointerUp={() => this.unselect()}>
+                    style={{position: 'relative', width: '100%', height: '100%', touchAction: 'none'}}>
 
                     {
                         this.props.wall.images.map(i => 
-                            <div key={i._id} style={{position: 'absolute', left: i.x, top: i.y}} onPointerDown={(e: React.PointerEvent) => this.startMoveImage(i._id,e)}>
+                            <div key={i._id} style={{position: 'absolute', top: this.getWallY(i.y), left: this.getWallX(i.x)}} onPointerDown={(e: React.PointerEvent) => this.startMoveImage(i._id,e)}>
                                 <img src={getServerBaseUrl() + "api/data/" + i._id} alt={i.name}  />
                                 <span className="hover-icon bottom-right" title="Delete image" onPointerDown={(e) => this.deleteImage(e, i._id)}>
                                     <svg className="bi bi-trash" width="1em" height="0.8em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
@@ -511,7 +640,7 @@ class Wall extends Component<WallProps & StateProps & ConnectedProps> {
                     {
                         this.props.wall.notes.map(note => 
                             <Card key={note._id} 
-                                style={{ width: '150px', boxShadow: this.getBorder(note._id), height: '150px', position: 'absolute', top: note.y, left: note.x, background: note.colour, zIndex: note.zIndex }} 
+                                style={{ width: '150px', boxShadow: this.getBorder(note._id), height: '150px', position: 'absolute', top: this.getWallY(note.y), left: this.getWallX(note.x), background: note.colour, zIndex: note.zIndex }} 
                                 onPointerDown={(e: React.PointerEvent) => this.startMove(note._id,e)}>
                                 <Card.Body style={{ padding: '12px' }}>
                                     { 
